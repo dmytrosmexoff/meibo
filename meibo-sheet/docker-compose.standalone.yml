@@ -1,0 +1,26 @@
+# For testing WITHOUT Umbrel. There is no login in this mode: use only in a closed network.
+services:
+  web:
+    build: .
+    ports:
+      - "1475:80"
+    depends_on:
+      - db
+    environment:
+      DB_HOST: db
+      DB_NAME: meibo
+      DB_USER: meibo
+      DB_PASS: change-me-please
+    restart: unless-stopped
+  db:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: meibo
+      MYSQL_USER: meibo
+      MYSQL_PASSWORD: change-me-please
+      MYSQL_ROOT_PASSWORD: change-me-too
+    volumes:
+      - dbdata:/var/lib/mysql
+    restart: unless-stopped
+volumes:
+  dbdata: {}
