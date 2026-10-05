@@ -1,7 +1,7 @@
 # For testing WITHOUT Umbrel. There is no login in this mode: use only in a closed network.
 services:
   web:
-    build: .
+    build: ./app
     ports:
       - "1475:80"
     depends_on:

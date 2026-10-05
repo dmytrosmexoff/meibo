@@ -7,7 +7,7 @@ services:
       APP_PORT: 80
 
   web:
-    image: meibo-web:1.0
+    build: ./app
     restart: on-failure
     depends_on:
       - db
