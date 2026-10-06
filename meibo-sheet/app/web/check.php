@@ -11,6 +11,7 @@ try {
         echo $t . ": " . $db->query("SELECT COUNT(*) FROM $t")->fetchColumn() . " rows\n";
     }
     echo "Sheet counter: " . $db->query("SELECT v FROM meta WHERE k = 'counter'")->fetchColumn() . "\n";
+    echo "Admin page: kanri.php?k=" . admin_key() . "\n";
     echo "ALL GOOD\n";
 } catch (Throwable $e) {
     echo "ERROR: " . $e->getMessage() . "\n";

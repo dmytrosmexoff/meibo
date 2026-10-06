@@ -135,3 +135,5 @@ function mirror_day($db, $d, $data) {
         error_log('mirror_day: ' . $e->getMessage());
     }
 }
+
+function admin_key() { return substr(hash_hmac('sha256', 'admin-url', (string)(getenv('MEIBO_SEED') ?: 'meibo')), 0, 20); }

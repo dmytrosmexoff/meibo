@@ -135,6 +135,9 @@ try {
         $db->commit();
         out(['ok' => true]);
 
+    case 'admin_link':
+        out(['url' => 'kanri.php?k=' . admin_key()]);
+
     default:
         out(['error' => 'unknown'], 400);
     }

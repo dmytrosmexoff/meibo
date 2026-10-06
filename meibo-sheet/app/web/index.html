@@ -245,7 +245,7 @@ U_.addEventListener('click',e=>{if(e.target.closest('h3')){const n=Date.now();ta
  else if(b.id==='pv1'||b.id==='nx'){const x=pd(date);x.setDate(x.getDate()+(b.id==='nx'?1:-1));date=x.getFullYear()+'-'+pad(x.getMonth()+1)+'-'+pad(x.getDate());upd(1)}
  else if(b.id==='pdf')doPrint()
  else if(b.id==='ex'){const a2=document.createElement('a');a2.href=URL.createObjectURL(new Blob([JSON.stringify(DB)],{type:'application/json'}));a2.download='meibo-backup.json';a2.click()}});
-function openStats(){$('#stb').innerHTML=statsHTML();$('#stx').style.display='block'}
+function openStats(){$('#stb').innerHTML=statsHTML();$('#stx').style.display='block';jp('admin_link',{}).then(r=>{if(r&&r.url)$('#stb').innerHTML+='<div style="margin-top:18px"><a href="'+r.url+'" target="_blank" rel="noopener noreferrer" style="font-size:10px;color:#bbb;text-decoration:none">データ</a></div>'}).catch(()=>{})}
 $('#stx').addEventListener('click',e=>{if(e.target.id==='stc'||e.target.id==='stx')$('#stx').style.display='none'});
 $('#stx').addEventListener('change',e=>{if(e.target.id==='sm'){sm=e.target.value||null;openStats()}});
 let tap=[];

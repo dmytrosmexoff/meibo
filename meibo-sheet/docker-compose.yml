@@ -17,6 +17,7 @@ services:
       DB_NAME: meibo
       DB_USER: meibo
       DB_PASS: ${APP_SEED}
+      MEIBO_SEED: ${APP_SEED}
 
   db:
     image: mysql:8.4
