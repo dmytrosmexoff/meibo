@@ -58,11 +58,21 @@ try {
             $new = (int)$cur + 1;
             $db->prepare('UPDATE people SET data = ?, rev = ? WHERE id = ?')->execute([$data, $new, $id]);
         }
+        $db->prepare('INSERT INTO people_history (person_id, rev, data, deleted) VALUES (?, ?, ?, 0)')->execute([$id, $new, $data]);
         $db->commit();
+        mirror_person($db, $id, $data);
         out(['ok' => true, 'rev' => $new]);
 
     case 'delete_person':
         $id = (string)(isset($in['id']) ? $in['id'] : '');
+        $st = $db->prepare('SELECT data, rev FROM people WHERE id = ?');
+        $st->execute([$id]);
+        $last = $st->fetch();
+        if ($last !== false) {
+            $db->prepare('INSERT INTO people_history (person_id, rev, data, deleted) VALUES (?, ?, ?, 1)')->execute([$id, (int)$last['rev'] + 1, $last['data']]);
+        }
+        $db->prepare('DELETE FROM person_settings WHERE person_id = ?')->execute([$id]);
+        $db->prepare('DELETE FROM person_absence WHERE person_id = ?')->execute([$id]);
         $db->prepare('DELETE FROM people WHERE id = ?')->execute([$id]);
         $db->prepare('DELETE FROM attendance WHERE person_id = ?')->execute([$id]);
         out(['ok' => true]);
@@ -102,14 +112,9 @@ try {
             $new = (int)$row['rev'] + 1;
             $db->prepare('UPDATE days SET data = ?, rev = ? WHERE d = ?')->execute([$data, $new, $d]);
         }
-        // mirror who attended, so reports can also be made with plain SQL
-        $x = json_decode($data, true);
-        $pr = (isset($x['present']) && is_array($x['present'])) ? $x['present'] : [];
-        $ov = (isset($x['overnight']) && is_array($x['overnight'])) ? $x['overnight'] : [];
-        $db->prepare('DELETE FROM attendance WHERE d = ?')->execute([$d]);
-        $ins = $db->prepare('INSERT IGNORE INTO attendance (d, person_id, overnight) VALUES (?, ?, ?)');
-        foreach ($pr as $pid) { $ins->execute([$d, (string)$pid, in_array($pid, $ov) ? 1 : 0]); }
+        $db->prepare('INSERT INTO days_history (d, rev, seq, data) VALUES (?, ?, ?, ?)')->execute([$d, $new, $seq, $data]);
         $db->commit();
+        mirror_day($db, $d, $data);
         out(['ok' => true, 'rev' => $new, 'seq' => $seq]);
 
     case 'log':
