@@ -1,9 +1,9 @@
 <?php
 // Connects to MySQL and creates tables on first use.
 function db_connect() {
-    $host = getenv('DB_HOST') ?: 'localhost';
+    $host = getenv('DB_HOST') ?: 'db';
     $name = getenv('DB_NAME') ?: 'meibo';
-    $user = getenv('DB_USER') ?: '';
+    $user = getenv('DB_USER') ?: 'meibo';
     $pass = getenv('DB_PASS') ?: '';
     $db = new PDO(
         'mysql:host=' . $host . ';dbname=' . $name . ';charset=utf8mb4',
@@ -110,10 +110,13 @@ function mirror_day($db, $d, $data) {
         $ins = $db->prepare('INSERT IGNORE INTO attendance (d, person_id, overnight, person_name, kind) VALUES (?, ?, ?, ?, ?)');
         foreach ($pr as $pid) {
             $s = (isset($people[$pid]) && is_array($people[$pid])) ? pick_version($people[$pid], $d) : [];
+            $mo = (isset($x['modes']) && is_array($x['modes']) && isset($x['modes'][$pid]))
+                ? (string)$x['modes'][$pid]
+                : ((isset($s['kind']) && $s['kind'] === 'visit') ? 'visit' : (in_array($pid, $ov, true) ? 'night' : 'day'));
             $ins->execute([
                 $d, $pid, in_array($pid, $ov, true) ? 1 : 0,
                 (string)(isset($s['name']) ? $s['name'] : ''),
-                (string)(isset($s['kind']) ? $s['kind'] : '')
+                $mo
             ]);
         }
         $db->prepare('DELETE FROM staff_days WHERE d = ?')->execute([$d]);
