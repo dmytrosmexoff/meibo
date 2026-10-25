@@ -1,9 +1,9 @@
 <?php
 // Connects to MySQL and creates tables on first use.
 function db_connect() {
-    $host = getenv('DB_HOST') ?: 'db';
+    $host = getenv('DB_HOST') ?: 'localhost';
     $name = getenv('DB_NAME') ?: 'meibo';
-    $user = getenv('DB_USER') ?: 'meibo';
+    $user = getenv('DB_USER') ?: 'root';
     $pass = getenv('DB_PASS') ?: '';
     $db = new PDO(
         'mysql:host=' . $host . ';dbname=' . $name . ';charset=utf8mb4',
