@@ -9,17 +9,79 @@ function out($a, $code = 200) {
     exit;
 }
 
+$a = isset($_GET['a']) ? $_GET['a'] : '';
+$in = json_decode(file_get_contents('php://input'), true);
+if (!is_array($in)) { $in = []; }
+
 try {
     $db = db_connect();
 } catch (Throwable $e) {
     out(['error' => 'db'], 503);
 }
 
-$a = isset($_GET['a']) ? $_GET['a'] : '';
-$in = json_decode(file_get_contents('php://input'), true);
-if (!is_array($in)) { $in = []; }
-
 try {
+    // ---------- actions that do not need a login ----------
+    if ($a === 'register') {
+        $name = trim((string)(isset($in['u']) ? $in['u'] : ''));
+        $pass = (string)(isset($in['p']) ? $in['p'] : '');
+        $len = function_exists('mb_strlen') ? mb_strlen($name, 'UTF-8') : strlen($name);
+        if ($len < 2 || $len > 32 || preg_match('/\s/u', $name)) { out(['ok' => false, 'error' => 'name']); }
+        if (strlen($pass) < 8) { out(['ok' => false, 'error' => 'weak']); }
+        $st = $db->prepare('SELECT COUNT(*) FROM users WHERE username = ?');
+        $st->execute([$name]);
+        if ((int)$st->fetchColumn() > 0) { out(['ok' => false, 'error' => 'exists']); }
+        $hash = password_hash($pass, PASSWORD_DEFAULT);
+        // the very first account becomes the administrator and is active at once (atomic)
+        $ins = $db->prepare("INSERT INTO users (username, pass_hash, role, status) SELECT ?, ?, 'admin', 'active' FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM users)");
+        $ins->execute([$name, $hash]);
+        if ($ins->rowCount() === 1) {
+            start_session($db, (int)$db->lastInsertId());
+            out(['ok' => true, 'status' => 'active', 'role' => 'admin']);
+        }
+        // everybody else waits until the administrator approves (once)
+        $db->prepare("INSERT INTO users (username, pass_hash, role, status) VALUES (?, ?, 'user', 'pending')")->execute([$name, $hash]);
+        out(['ok' => true, 'status' => 'pending', 'role' => 'user']);
+    }
+
+    if ($a === 'login') {
+        $name = trim((string)(isset($in['u']) ? $in['u'] : ''));
+        $pass = (string)(isset($in['p']) ? $in['p'] : '');
+        $st = $db->prepare('SELECT id, pass_hash, role, status, fails, fail_ts FROM users WHERE username = ?');
+        $st->execute([$name]);
+        $u = $st->fetch();
+        if ($u !== false && (int)$u['fails'] >= 8 && time() - (int)$u['fail_ts'] < 600) { out(['ok' => false, 'error' => 'locked']); }
+        if ($u === false || !password_verify($pass, $u['pass_hash'])) {
+            if ($u !== false) {
+                $f = (time() - (int)$u['fail_ts'] >= 600) ? 1 : (int)$u['fails'] + 1;
+                $db->prepare('UPDATE users SET fails = ?, fail_ts = ? WHERE id = ?')->execute([$f, time(), (int)$u['id']]);
+            }
+            sleep(1);
+            out(['ok' => false, 'error' => 'wrong']);
+        }
+        if ($u['status'] === 'pending') { out(['ok' => false, 'error' => 'pending']); }
+        if ($u['status'] !== 'active') { out(['ok' => false, 'error' => 'blocked']); }
+        $db->prepare('UPDATE users SET fails = 0, last_login = CURRENT_TIMESTAMP WHERE id = ?')->execute([(int)$u['id']]);
+        start_session($db, (int)$u['id']);
+        out(['ok' => true, 'user' => ['username' => $name, 'role' => $u['role']]]);
+    }
+
+    if ($a === 'logout') {
+        if (!empty($_COOKIE['meibo_sid']) && is_string($_COOKIE['meibo_sid'])) {
+            $db->prepare('DELETE FROM sessions WHERE token_hash = ?')->execute([hash('sha256', $_COOKIE['meibo_sid'])]);
+        }
+        setcookie('meibo_sid', '', ['expires' => time() - 3600, 'path' => '/']);
+        out(['ok' => true]);
+    }
+
+    // ---------- everything below needs an approved, logged-in user ----------
+    $user = current_user($db);
+    if ($user === null) { out(['error' => 'auth'], 401); }
+    $isAdmin = ($user['role'] === 'admin');
+
+    if ($a === 'me') {
+        out(['ok' => true, 'user' => ['username' => $user['username'], 'role' => $user['role']]]);
+    }
+
     switch ($a) {
 
     case 'load':
@@ -135,7 +197,48 @@ try {
         $db->commit();
         out(['ok' => true]);
 
+    case 'comment_add':
+        // every user may write; only the administrator can read (see comments_list)
+        $text = trim((string)(isset($in['text']) ? $in['text'] : ''));
+        if ($text === '') { out(['ok' => false]); }
+        $text = function_exists('mb_substr') ? mb_substr($text, 0, 2000, 'UTF-8') : substr($text, 0, 2000);
+        $db->prepare('INSERT INTO feedback (user_id, username, body) VALUES (?, ?, ?)')->execute([(int)$user['id'], $user['username'], $text]);
+        out(['ok' => true]);
+
+    case 'users_list':
+        if (!$isAdmin) { out(['error' => 'forbidden'], 403); }
+        $list = [];
+        foreach ($db->query('SELECT id, username, role, status, created_at, last_login FROM users ORDER BY id') as $r) { $list[] = $r; }
+        out(['users' => $list]);
+
+    case 'user_set':
+        if (!$isAdmin) { out(['error' => 'forbidden'], 403); }
+        $id = (int)(isset($in['id']) ? $in['id'] : 0);
+        $op = (string)(isset($in['op']) ? $in['op'] : '');
+        if ($op === 'approve') {
+            $db->prepare("UPDATE users SET status = 'active', fails = 0 WHERE id = ?")->execute([$id]);
+        } elseif ($op === 'block') {
+            $db->prepare("UPDATE users SET status = 'blocked' WHERE id = ? AND role <> 'admin'")->execute([$id]);
+            $db->prepare("DELETE s FROM sessions s JOIN users u ON u.id = s.user_id WHERE u.id = ? AND u.role <> 'admin'")->execute([$id]);
+        } elseif ($op === 'delete') {
+            $db->prepare("DELETE s FROM sessions s JOIN users u ON u.id = s.user_id WHERE u.id = ? AND u.role <> 'admin'")->execute([$id]);
+            $db->prepare("DELETE FROM users WHERE id = ? AND role <> 'admin'")->execute([$id]);
+        }
+        out(['ok' => true]);
+
+    case 'comments_list':
+        if (!$isAdmin) { out(['error' => 'forbidden'], 403); }
+        $c = [];
+        foreach ($db->query('SELECT id, username, body, created_at FROM feedback ORDER BY id DESC LIMIT 500') as $r) { $c[] = $r; }
+        out(['comments' => $c]);
+
+    case 'comment_delete':
+        if (!$isAdmin) { out(['error' => 'forbidden'], 403); }
+        $db->prepare('DELETE FROM feedback WHERE id = ?')->execute([(int)(isset($in['id']) ? $in['id'] : 0)]);
+        out(['ok' => true]);
+
     case 'admin_link':
+        if (!$isAdmin) { out(['error' => 'forbidden'], 403); }
         out(['url' => 'kanri.php?k=' . admin_key()]);
 
     default:

@@ -32,6 +32,7 @@ function page($body) {
 }
 
 try { $db = db_connect(); } catch (Throwable $e) { http_response_code(503); echo 'DB error'; exit; }
+if (admin_session($db) === null) { http_response_code(404); echo 'Not Found'; exit; }
 $db->exec("CREATE TABLE IF NOT EXISTS admin_settings (k VARCHAR(32) NOT NULL PRIMARY KEY, v VARCHAR(255) NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 function setting($db, $k) {
     $st = $db->prepare('SELECT v FROM admin_settings WHERE k = ?');

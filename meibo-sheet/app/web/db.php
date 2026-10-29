@@ -1,15 +1,36 @@
 <?php
 // Connects to MySQL and creates tables on first use.
+// Value from an environment variable or from config.php.
+function cfg($key, $env, $default) {
+    static $c = null;
+    if ($c === null) {
+        $f = __DIR__ . '/config.php';
+        $c = is_file($f) ? require $f : [];
+        if (!is_array($c)) { $c = []; }
+    }
+    $e = getenv($env);
+    if ($e !== false && $e !== '') { return $e; }
+    return isset($c[$key]) ? $c[$key] : $default;
+}
+
+function is_https() { return !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'; }
+
 function db_connect() {
-    $host = getenv('DB_HOST') ?: 'localhost';
-    $name = getenv('DB_NAME') ?: 'meibo';
-    $user = getenv('DB_USER') ?: 'root';
-    $pass = getenv('DB_PASS') ?: '';
-    $db = new PDO(
-        'mysql:host=' . $host . ';dbname=' . $name . ';charset=utf8mb4',
-        $user, $pass,
-        [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]
-    );
+    $host = cfg('db_host', 'DB_HOST', 'localhost');
+    $name = cfg('db_name', 'DB_NAME', 'meibo');
+    $user = cfg('db_user', 'DB_USER', 'meibo');
+    $pass = cfg('db_pass', 'DB_PASS', '');
+    $opt = [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC];
+    $dsn = 'mysql:host=' . $host . ';dbname=' . $name . ';charset=utf8mb4';
+    try {
+        $db = new PDO($dsn, $user, $pass, $opt);
+    } catch (PDOException $e) {
+        // 1049 = the database does not exist yet: create it (needs the right to do so) and connect again
+        if ((int)$e->getCode() !== 1049) { throw $e; }
+        $tmp = new PDO('mysql:host=' . $host . ';charset=utf8mb4', $user, $pass, $opt);
+        $tmp->exec('CREATE DATABASE IF NOT EXISTS `' . str_replace('`', '', $name) . '` CHARACTER SET utf8mb4');
+        $db = new PDO($dsn, $user, $pass, $opt);
+    }
     $db->exec("SET time_zone = '" . (getenv('MEIBO_TZ') ?: '+09:00') . "'");
     $db->exec("CREATE TABLE IF NOT EXISTS people_history (id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY, person_id VARCHAR(40) NOT NULL, rev INT NOT NULL, data JSON NOT NULL, deleted TINYINT NOT NULL DEFAULT 0, saved_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, KEY idx_person (person_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
     $db->exec("CREATE TABLE IF NOT EXISTS days_history (id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY, d DATE NOT NULL, rev INT NOT NULL, seq TINYINT NOT NULL, data JSON NOT NULL, saved_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, KEY idx_d (d)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
@@ -22,6 +43,9 @@ function db_connect() {
     $db->exec("CREATE TABLE IF NOT EXISTS days (d DATE NOT NULL PRIMARY KEY, seq TINYINT NOT NULL, data JSON NOT NULL, rev INT NOT NULL DEFAULT 1) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
     $db->exec("CREATE TABLE IF NOT EXISTS attendance (d DATE NOT NULL, person_id VARCHAR(40) NOT NULL, overnight TINYINT NOT NULL DEFAULT 0, person_name VARCHAR(255) NULL, kind VARCHAR(16) NULL, PRIMARY KEY (d, person_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
     $db->exec("CREATE TABLE IF NOT EXISTS log (id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY, ts VARCHAR(40), type VARCHAR(16), target VARCHAR(64), field VARCHAR(64), old_v JSON NULL, new_v JSON NULL, d VARCHAR(10)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    $db->exec("CREATE TABLE IF NOT EXISTS users (id INT NOT NULL AUTO_INCREMENT PRIMARY KEY, username VARCHAR(64) NOT NULL, pass_hash VARCHAR(255) NOT NULL, role VARCHAR(8) NOT NULL DEFAULT 'user', status VARCHAR(8) NOT NULL DEFAULT 'pending', created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, last_login TIMESTAMP NULL DEFAULT NULL, fails INT NOT NULL DEFAULT 0, fail_ts INT NOT NULL DEFAULT 0, UNIQUE KEY uq_username (username)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    $db->exec("CREATE TABLE IF NOT EXISTS sessions (token_hash CHAR(64) NOT NULL PRIMARY KEY, user_id INT NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, KEY idx_user (user_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    $db->exec("CREATE TABLE IF NOT EXISTS feedback (id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, username VARCHAR(64) NOT NULL, body TEXT NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
     $db->exec("INSERT IGNORE INTO meta (k, v) VALUES ('counter', 0)");
     // upgrade of an older database: add readable columns and fill history from the existing data (runs once)
     $has = (int)$db->query("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'attendance' AND COLUMN_NAME = 'person_name'")->fetchColumn();
@@ -65,7 +89,7 @@ function mirror_person($db, $id, $data) {
         if (!is_array($p)) { return; }
         $db->prepare('DELETE FROM person_settings WHERE person_id = ?')->execute([$id]);
         $db->prepare('DELETE FROM person_absence WHERE person_id = ?')->execute([$id]);
-        $medN = ['nextMorning' => '翌朝', 'morning' => '朝', 'patch' => '貼り薬', 'noon' => '昼', 'evening' => '夕', 'bedtime' => '寝る前'];
+        $medN = ['nextMorning' => '翌朝', 'morning' => '朝', 'patch' => '貼り薬', 'noon' => '昼', 'evening' => '夕', 'bedtime' => '寝る前', 'abx' => '抗生物質'];
         $mealN = ['b' => '朝', 'l' => '昼', 'd' => '夕'];
         $ins = $db->prepare('INSERT IGNORE INTO person_settings (person_id, from_date, name, kind, note, vital, meds, meals, delivery) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
         $vs = (isset($p['v']) && is_array($p['v'])) ? $p['v'] : [];
@@ -139,4 +163,29 @@ function mirror_day($db, $d, $data) {
     }
 }
 
-function admin_key() { return substr(hash_hmac('sha256', 'admin-url', (string)(getenv('MEIBO_SEED') ?: 'meibo')), 0, 20); }
+// secret part of the address of the hidden database page
+function admin_key() {
+    $secret = (string)cfg('secret', 'MEIBO_SEED', '');
+    if ($secret === '' || $secret === 'CHANGE-ME-LONG-RANDOM') {
+        $secret = cfg('db_pass', 'DB_PASS', '') . '|' . cfg('db_name', 'DB_NAME', '');
+    }
+    return substr(hash_hmac('sha256', 'admin-url', $secret), 0, 20);
+}
+
+// ---------- accounts: long-lived login (no automatic logout) ----------
+function current_user($db) {
+    if (empty($_COOKIE['meibo_sid']) || !is_string($_COOKIE['meibo_sid'])) { return null; }
+    $st = $db->prepare("SELECT u.id, u.username, u.role, u.status FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token_hash = ? AND u.status = 'active'");
+    $st->execute([hash('sha256', $_COOKIE['meibo_sid'])]);
+    $u = $st->fetch();
+    return $u === false ? null : $u;
+}
+function admin_session($db) {
+    $u = current_user($db);
+    return ($u !== null && $u['role'] === 'admin') ? $u : null;
+}
+function start_session($db, $uid) {
+    $tok = bin2hex(random_bytes(32));
+    $db->prepare('INSERT INTO sessions (token_hash, user_id) VALUES (?, ?)')->execute([hash('sha256', $tok), $uid]);
+    setcookie('meibo_sid', $tok, ['expires' => time() + 10 * 365 * 86400, 'path' => '/', 'httponly' => true, 'samesite' => 'Lax', 'secure' => is_https()]);
+}
