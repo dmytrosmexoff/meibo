@@ -13,6 +13,8 @@ $a = isset($_GET['a']) ? $_GET['a'] : '';
 $in = json_decode(file_get_contents('php://input'), true);
 if (!is_array($in)) { $in = []; }
 
+if (setup_needed()) { out(['error' => 'setup'], 503); }
+
 try {
     $db = db_connect();
 } catch (Throwable $e) {
@@ -71,6 +73,10 @@ try {
         }
         setcookie('meibo_sid', '', ['expires' => time() - 3600, 'path' => '/']);
         out(['ok' => true]);
+    }
+
+    if ($a === 'status') {
+        out(['users' => (int)$db->query('SELECT COUNT(*) FROM users')->fetchColumn()]);
     }
 
     // ---------- everything below needs an approved, logged-in user ----------

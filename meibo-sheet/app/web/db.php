@@ -2,7 +2,7 @@
 // Connects to MySQL and creates tables on first use.
 // Value from an environment variable or from config.php.
 function cfg($key, $env, $default) {
-    static $c = null;
+    static $c = null, $L = [];
     if ($c === null) {
         $f = __DIR__ . '/config.php';
         $c = is_file($f) ? require $f : [];
@@ -11,9 +11,10 @@ function cfg($key, $env, $default) {
         $g = __DIR__ . '/config.local.php';
         if (is_file($g)) {
             $l = require $g;
-            if (is_array($l)) { $c = array_merge($c, $l); }
+            if (is_array($l)) { $L = $l; $c = array_merge($c, $l); }
         }
     }
+    if (isset($L[$key])) { return $L[$key]; }
     $e = getenv($env);
     if ($e !== false && $e !== '') { return $e; }
     return isset($c[$key]) ? $c[$key] : $default;
@@ -195,4 +196,25 @@ function start_session($db, $uid) {
     $tok = bin2hex(random_bytes(32));
     $db->prepare('INSERT INTO sessions (token_hash, user_id) VALUES (?, ?)')->execute([hash('sha256', $tok), $uid]);
     setcookie('meibo_sid', $tok, ['expires' => time() + 10 * 365 * 86400, 'path' => '/', 'httponly' => true, 'samesite' => 'Lax', 'secure' => is_https()]);
+}
+
+// true until the connection to MySQL has been set up (first launch).
+// Not needed when: settings were saved by setup.php (config.local.php), config.php was edited by hand,
+// or the database already has accounts (an installation made with an older version keeps working).
+function setup_needed() {
+    static $r = null;
+    if ($r !== null) { return $r; }
+    $r = true;
+    if (is_file(__DIR__ . '/config.local.php')) { return $r = false; }
+    $f = __DIR__ . '/config.php';
+    if (is_file($f)) {
+        $c = require $f;
+        if (is_array($c) && isset($c['db_pass']) && $c['db_pass'] !== 'CHANGE-ME') { return $r = false; }
+    }
+    try {
+        $db = db_connect();
+        if ((int)$db->query('SELECT COUNT(*) FROM users')->fetchColumn() > 0) { return $r = false; }
+    } catch (Throwable $e) {
+    }
+    return $r;
 }
