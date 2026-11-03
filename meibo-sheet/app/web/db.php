@@ -7,6 +7,12 @@ function cfg($key, $env, $default) {
         $f = __DIR__ . '/config.php';
         $c = is_file($f) ? require $f : [];
         if (!is_array($c)) { $c = []; }
+        // settings saved by setup.php (first-time setup in the browser) override config.php
+        $g = __DIR__ . '/config.local.php';
+        if (is_file($g)) {
+            $l = require $g;
+            if (is_array($l)) { $c = array_merge($c, $l); }
+        }
     }
     $e = getenv($env);
     if ($e !== false && $e !== '') { return $e; }
@@ -21,13 +27,14 @@ function db_connect() {
     $user = cfg('db_user', 'DB_USER', 'meibo');
     $pass = cfg('db_pass', 'DB_PASS', '');
     $opt = [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC];
-    $dsn = 'mysql:host=' . $host . ';dbname=' . $name . ';charset=utf8mb4';
+    $port = (int)cfg('db_port', 'DB_PORT', '3306');
+    $dsn = 'mysql:host=' . $host . ';port=' . ($port > 0 ? $port : 3306) . ';dbname=' . $name . ';charset=utf8mb4';
     try {
         $db = new PDO($dsn, $user, $pass, $opt);
     } catch (PDOException $e) {
         // 1049 = the database does not exist yet: create it (needs the right to do so) and connect again
         if ((int)$e->getCode() !== 1049) { throw $e; }
-        $tmp = new PDO('mysql:host=' . $host . ';charset=utf8mb4', $user, $pass, $opt);
+        $tmp = new PDO('mysql:host=' . $host . ';port=' . ($port > 0 ? $port : 3306) . ';charset=utf8mb4', $user, $pass, $opt);
         $tmp->exec('CREATE DATABASE IF NOT EXISTS `' . str_replace('`', '', $name) . '` CHARACTER SET utf8mb4');
         $db = new PDO($dsn, $user, $pass, $opt);
     }

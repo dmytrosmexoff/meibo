@@ -237,6 +237,12 @@ try {
         $db->prepare('DELETE FROM feedback WHERE id = ?')->execute([(int)(isset($in['id']) ? $in['id'] : 0)]);
         out(['ok' => true]);
 
+    case 'db_test':
+        if (!$isAdmin) { out(['error' => 'forbidden'], 403); }
+        $ver = (string)$db->query('SELECT VERSION()')->fetchColumn();
+        $tc = (int)$db->query('SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE()')->fetchColumn();
+        out(['ok' => true, 'version' => $ver, 'db' => (string)cfg('db_name', 'DB_NAME', 'meibo'), 'host' => (string)cfg('db_host', 'DB_HOST', 'localhost'), 'tables' => $tc]);
+
     case 'admin_link':
         if (!$isAdmin) { out(['error' => 'forbidden'], 403); }
         out(['url' => 'kanri.php?k=' . admin_key()]);

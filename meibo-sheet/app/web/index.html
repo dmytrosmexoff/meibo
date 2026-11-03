@@ -33,7 +33,7 @@ button.p{background:#2f6fed;color:#fff;border-color:#2f6fed}.row{display:flex;ga
 #qprint{display:none}
 #ui{padding-bottom:56px}.err{color:#b00;min-height:1.2em}
 #auth{display:none;position:fixed;inset:0;z-index:50;background:#e9ebef;align-items:center;justify-content:center}#auth .box{background:#fff;padding:22px 26px;border-radius:10px;width:330px;box-shadow:0 4px 18px rgba(0,0,0,.15)}#auth input{width:100%;font:inherit;padding:7px 9px;border:1px solid #bbb;border-radius:6px}
-.cmb{position:fixed;left:12px;bottom:12px;z-index:10;opacity:.9}
+.cmb{position:fixed;left:12px;bottom:12px;z-index:10;opacity:.9}#admb2{left:118px}
 #cmw,#admw{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:40;overflow:auto}#cmw .win,#admw .win{background:#fff;max-width:720px;margin:30px auto;padding:16px;border-radius:8px}#admw .win{max-width:900px}
 #sheet,.sheetp{width:408.7mm;position:relative;background:#fff;color:#000;font-family:"Hiragino Sans","Yu Gothic",Meiryo,"Noto Sans CJK JP",sans-serif;transform-origin:0 0;padding-bottom:2mm}
 .t{border-collapse:collapse;table-layout:fixed;width:367.1mm}
@@ -74,6 +74,7 @@ button.p{background:#2f6fed;color:#fff;border-color:#2f6fed}.row{display:flex;ga
 <div id="stx" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9;overflow:auto"><div style="background:#fff;max-width:640px;margin:30px auto;padding:16px;border-radius:8px"><button id="stc" style="float:right">閉じる</button><div id="stb"></div></div></div>
 <div id="auth"></div>
 <button class="cmb" id="cmb" style="display:none">コメント</button>
+<button class="cmb" id="admb2" style="display:none">Админка</button>
 <div id="cmw"></div>
 <div id="admw"></div>
 <script>
@@ -170,7 +171,7 @@ async function flush(){pend=false;if(busy){dirty=true;return}busy=true;
  }catch(e){if(online){online=false;ui()}}
  finally{busy=false;if(dirty){dirty=false;flush()}}}
 async function conflict(){msg='他の端末で更新されました。最新の状態を読み込みました。';await reload()}
-function poll(){if(!ME||busy||dirty||pend)return;const np=document.querySelector('[data-new="1"]');if(np&&np.value)return;if(unsynced()){flush();return}const a=document.activeElement;if(a&&/INPUT|SELECT|TEXTAREA/.test(a.tagName))return;reload()}
+function poll(){if(!ME||busy||dirty||pend)return;if(ME.role==='admin')admRefresh();const np=document.querySelector('[data-new="1"]');if(np&&np.value)return;if(unsynced()){flush();return}const a=document.activeElement;if(a&&/INPUT|SELECT|TEXTAREA/.test(a.tagName))return;reload()}
 async function doPrint(){ensure();clearTimeout(timer);await flush();if(busy)await new Promise(r=>setTimeout(r,800));render();msg='';ui();printed=false;document.title=fname();try{window.print()}catch(e){}setTimeout(()=>{if(!printed)saveSheet();document.title='利用者名簿'},1200)}
 /* ---- print queue: up to 15 finished days, saved together as one PDF ---- */
 let Q=[];try{Q=JSON.parse(localStorage.getItem('meibo_q')||'[]')}catch(e){}
@@ -188,7 +189,7 @@ addEventListener('afterprint',()=>{document.body.classList.remove('pq');const b=
 /* ---- accounts, comments for the developer, administrator ---- */
 let ME=null,authMode='login',authMsg='',ADM={users:[],comments:[],tab:'s',pending:0,arm:'',link:''};
 const AUTHERR={wrong:'ユーザー名またはパスワードが違います。',pending:'管理者の承認待ちです。承認されるとログインできます。',blocked:'このアカウントは利用できません。',exists:'このユーザー名は既に使われています。',weak:'パスワードは8文字以上にしてください。',name:'ユーザー名は2〜32文字で、空白は使えません。',locked:'試行回数が多すぎます。10分後にもう一度お試しください。'};
-function showAuth(){const a=$('#auth'),reg=authMode==='register';a.style.display='flex';$('#cmb').style.display='none';$('#admw').style.display='none';$('#cmw').style.display='none';
+function showAuth(){const a=$('#auth'),reg=authMode==='register';a.style.display='flex';$('#cmb').style.display='none';$('#admb2').style.display='none';$('#admw').style.display='none';$('#cmw').style.display='none';
  a.innerHTML=`<div class="box"><h3>利用者名簿</h3><p><input type="text" id="au" placeholder="ユーザー名" autocomplete="username"></p><p><input type="password" id="ap" placeholder="パスワード（8文字以上）" autocomplete="${reg?'new-password':'current-password'}"></p>${reg?'<p><input type="password" id="ap2" placeholder="パスワード（確認）" autocomplete="new-password"></p>':''}<p class="err">${esc(authMsg)}</p><p><button class="p" id="ago">${reg?'登録':'ログイン'}</button> <a href="#" id="asw">${reg?'ログインへ':'新規登録'}</a></p></div>`}
 async function authGo(){const u=$('#au').value.trim(),p=$('#ap').value,reg=authMode==='register';
  if(reg&&p!==$('#ap2').value){authMsg='パスワードが一致しません。';showAuth();return}
@@ -197,16 +198,17 @@ async function authGo(){const u=$('#au').value.trim(),p=$('#ap').value,reg=authM
   if(r.ok){authMsg='';await boot();return}
   authMsg=AUTHERR[r.error]||'エラーが発生しました。'}catch(e){authMsg='サーバーに接続できません。'}
  showAuth()}
-async function boot(){try{const r=await fetch('api.php?a=me',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});if(r.status===401){showAuth();return}if(!r.ok)throw 0;const j=await r.json();ME=j.user;$('#auth').style.display='none';$('#cmb').style.display='block'}catch(e){online=false;ui();return}await reload()}
+function showDbSetup(){const a=$('#auth');a.style.display='flex';a.innerHTML='<div class="box"><h3>利用者名簿</h3><p>データベースに接続できません。<br><span class="mut">База данных недоступна. Подождите минуту (MySQL ещё запускается) и нажмите «Повторить».</span></p><p><button id="rtry">Повторить</button></p></div>'}
+async function boot(){try{const r=await fetch('api.php?a=me',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});if(r.status===401){showAuth();return}if(r.status===503){showDbSetup();return}if(!r.ok)throw 0;const j=await r.json();ME=j.user;$('#auth').style.display='none';$('#cmb').style.display='block';$('#admb2').style.display=ME.role==='admin'?'block':'none'}catch(e){online=false;ui();return}await reload();if(ME.role==='admin')admRefresh()}
 async function logout(){try{await jp('logout',{})}catch(e){}ME=null;ADM={users:[],comments:[],tab:'s',pending:0,arm:'',link:''};DB={people:[],days:{},staff:[],counter:0,log:[]};snap={};authMode='login';authMsg='';showAuth();ui();render()}
-async function admRefresh(){try{const r=await jp('users_list',{});ADM.users=r.users;ADM.pending=r.users.filter(x=>x.status==='pending').length}catch(e){}}
+async function admRefresh(){try{const r=await jp('users_list',{});ADM.users=r.users;ADM.pending=r.users.filter(x=>x.status==='pending').length;const b=$('#admb2');if(b)b.textContent='Админка'+(ADM.pending?' ('+ADM.pending+')':'')}catch(e){}}
 async function admOpen(tab){ADM.tab=tab||ADM.tab||'s';await admRefresh();try{ADM.comments=(await jp('comments_list',{})).comments}catch(e){}try{ADM.link=(await jp('admin_link',{})).url}catch(e){ADM.link=''}admDraw();$('#admw').style.display='block'}
 function admDraw(){const t=ADM.tab,ar=(id,op,l)=>`<button data-adm="${op}" data-id="${id}">${ADM.arm===id+':'+op?'Точно?':l}</button>`,tb=(k,l)=>`<button data-tab="${k}" ${t===k?'class="p"':''}>${l}</button>`;
  let h=`<button id="admc" style="float:right">Закрыть</button><h3>Администратор</h3><div class="row">${tb('s','Статистика')}${tb('u','Аккаунты'+(ADM.pending?' (ждут: '+ADM.pending+')':''))}${tb('c','Комментарии ('+ADM.comments.length+')')}${tb('d','База данных')}</div>`;
  if(t==='s')h+=statsHTML();
  else if(t==='u')h+='<table class="sx"><tr><th>Пользователь</th><th>Роль</th><th>Статус</th><th></th></tr>'+ADM.users.map(u=>`<tr><td>${esc(u.username)}</td><td>${u.role==='admin'?'администратор':'пользователь'}</td><td>${{pending:'ждёт подтверждения',active:'активен',blocked:'остановлен'}[u.status]||esc(u.status)}</td><td>${u.role==='admin'?'':`${u.status!=='active'?ar(u.id,'approve','Подтвердить'):''} ${u.status==='active'?ar(u.id,'block','Остановить'):''} ${ar(u.id,'delete','Удалить')}`}</td></tr>`).join('')+'</table>';
  else if(t==='c')h+=ADM.comments.length?ADM.comments.map(c=>`<div class="hi"><b>${esc(c.username)}</b> <span class="mut">${esc(c.created_at)}</span> ${ar(c.id,'cdel','Удалить')}<pre style="white-space:pre-wrap;margin:4px 0">${esc(c.body)}</pre></div>`).join(''):'<div class="mut">Комментариев нет</div>';
- else h+=ADM.link?`<p>Просмотр таблиц базы данных (только чтение, у страницы свой пароль).</p><p><a href="${esc(ADM.link)}" target="_blank" rel="noopener noreferrer">Открыть страницу базы данных</a></p>`:'<div class="mut">Недоступно</div>';
+ else h+=`<p><button id="dbt">Проверить подключение к базе данных</button> <span id="dbr" class="mut"></span></p>`+(ADM.link?`<p>Просмотр таблиц базы данных (только чтение, у страницы свой пароль).</p><p><a href="${esc(ADM.link)}" target="_blank" rel="noopener noreferrer">Открыть страницу базы данных</a></p>`:'<div class="mut">Недоступно</div>');
  $('#admw').innerHTML='<div class="win">'+h+'</div>'}
 function cmOpen(){const w=$('#cmw');w.style.display='block';w.innerHTML='<div class="win"><h3>開発者へのコメント</h3><p class="mut">ご意見・不具合などを自由に書いてください。送信した内容は画面には表示されません。</p><textarea id="cmt" rows="6" style="width:100%"></textarea><p><button class="p" id="cms">送信</button> <button id="cmx">閉じる</button> <span id="cmr" class="mut"></span></p></div>'}
 function sheetInner(){
@@ -328,13 +330,15 @@ function openStats(){admOpen('s')}
 $('#stx').addEventListener('click',e=>{if(e.target.id==='stc'||e.target.id==='stx')$('#stx').style.display='none'});
 $('#stx').addEventListener('change',e=>{if(e.target.id==='sm'){sm=e.target.value||null;openStats()}});
 let tap=[];
-$('#auth').addEventListener('click',e=>{if(e.target.id==='ago')authGo();if(e.target.id==='asw'){e.preventDefault();authMode=authMode==='login'?'register':'login';authMsg='';showAuth()}});
+$('#auth').addEventListener('click',e=>{if(e.target.id==='rtry')boot();if(e.target.id==='ago')authGo();if(e.target.id==='asw'){e.preventDefault();authMode=authMode==='login'?'register':'login';authMsg='';showAuth()}});
 $('#auth').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.tagName==='INPUT')authGo()});
+$('#admb2').addEventListener('click',()=>admOpen());
 $('#cmb').addEventListener('click',cmOpen);
 $('#cmw').addEventListener('click',e=>{if(e.target.id==='cmx'||e.target.id==='cmw'){$('#cmw').style.display='none';return}
  if(e.target.id==='cms'){const t=$('#cmt').value.trim();if(!t)return;jp('comment_add',{text:t}).then(r=>{$('#cmr').textContent=r.ok?'送信しました。ありがとうございます。':'送信できませんでした。';if(r.ok)$('#cmt').value=''}).catch(()=>{$('#cmr').textContent='送信できませんでした。'})}});
 $('#admw').addEventListener('click',async e=>{const t=e.target;
  if(t.id==='admc'||t.id==='admw'){$('#admw').style.display='none';return}
+ if(t.id==='dbt'){const o=$('#dbr');o.textContent='Проверяю…';try{const r=await jp('db_test',{});o.textContent='Работает: MySQL '+r.version+', база '+r.db+', хост '+r.host+', таблиц: '+r.tables}catch(e){o.textContent='Нет подключения'}return}
  if(t.dataset&&t.dataset.tab){ADM.tab=t.dataset.tab;ADM.arm='';admDraw();return}
  const op=t.dataset&&t.dataset.adm;if(!op)return;const key=t.dataset.id+':'+op;
  if(op!=='approve'&&ADM.arm!==key){ADM.arm=key;admDraw();return}
