@@ -1,63 +1,63 @@
 <?php
-// Connects to MySQL and creates tables on first use.
+// MySQL connections.
+// A = the built-in database created by the application itself (settings from the environment / config.php).
+// B = an optional second database entered by hand in the administrator window; the two are kept equal
+//     by sync.php (the newest information is copied to the place where it is older).
+
 // Value from an environment variable or from config.php.
 function cfg($key, $env, $default) {
-    static $c = null, $L = [];
+    static $c = null;
     if ($c === null) {
         $f = __DIR__ . '/config.php';
         $c = is_file($f) ? require $f : [];
         if (!is_array($c)) { $c = []; }
-        // settings saved by setup.php (first-time setup in the browser) override config.php
-        $g = __DIR__ . '/config.local.php';
-        if (is_file($g)) {
-            $l = require $g;
-            if (is_array($l)) { $L = $l; $c = array_merge($c, $l); }
-        }
     }
-    if (isset($L[$key])) { return $L[$key]; }
     $e = getenv($env);
     if ($e !== false && $e !== '') { return $e; }
     return isset($c[$key]) ? $c[$key] : $default;
 }
 
 function is_https() { return !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'; }
+function now_ms() { return (int)round(microtime(true) * 1000); }
 
-function db_connect() {
-    $host = cfg('db_host', 'DB_HOST', 'localhost');
-    $name = cfg('db_name', 'DB_NAME', 'meibo');
-    $user = cfg('db_user', 'DB_USER', 'meibo');
-    $pass = cfg('db_pass', 'DB_PASS', '');
-    $opt = [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC];
-    $port = (int)cfg('db_port', 'DB_PORT', '3306');
-    $dsn = 'mysql:host=' . $host . ';port=' . ($port > 0 ? $port : 3306) . ';dbname=' . $name . ';charset=utf8mb4';
+// Opens a connection and makes sure the database and all tables exist.
+function db_open($host, $port, $name, $user, $pass, $timeout = 5) {
+    $opt = [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC, PDO::ATTR_TIMEOUT => $timeout];
+    $port = ((int)$port > 0) ? (int)$port : 3306;
+    $dsn = 'mysql:host=' . $host . ';port=' . $port . ';dbname=' . $name . ';charset=utf8mb4';
     try {
         $db = new PDO($dsn, $user, $pass, $opt);
     } catch (PDOException $e) {
         // 1049 = the database does not exist yet: create it (needs the right to do so) and connect again
         if ((int)$e->getCode() !== 1049) { throw $e; }
-        $tmp = new PDO('mysql:host=' . $host . ';port=' . ($port > 0 ? $port : 3306) . ';charset=utf8mb4', $user, $pass, $opt);
+        $tmp = new PDO('mysql:host=' . $host . ';port=' . $port . ';charset=utf8mb4', $user, $pass, $opt);
         $tmp->exec('CREATE DATABASE IF NOT EXISTS `' . str_replace('`', '', $name) . '` CHARACTER SET utf8mb4');
         $db = new PDO($dsn, $user, $pass, $opt);
     }
     $db->exec("SET time_zone = '" . (getenv('MEIBO_TZ') ?: '+09:00') . "'");
-    $db->exec("CREATE TABLE IF NOT EXISTS people_history (id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY, person_id VARCHAR(40) NOT NULL, rev INT NOT NULL, data JSON NOT NULL, deleted TINYINT NOT NULL DEFAULT 0, saved_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, KEY idx_person (person_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-    $db->exec("CREATE TABLE IF NOT EXISTS days_history (id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY, d DATE NOT NULL, rev INT NOT NULL, seq TINYINT NOT NULL, data JSON NOT NULL, saved_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, KEY idx_d (d)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-    $db->exec("CREATE TABLE IF NOT EXISTS person_settings (person_id VARCHAR(40) NOT NULL, from_date VARCHAR(10) NOT NULL, name VARCHAR(255), kind VARCHAR(16), note TEXT, vital TINYINT, meds VARCHAR(255), meals VARCHAR(64), delivery VARCHAR(64), PRIMARY KEY (person_id, from_date)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-    $db->exec("CREATE TABLE IF NOT EXISTS person_absence (person_id VARCHAR(40) NOT NULL, from_date VARCHAR(10) NOT NULL, to_date VARCHAR(10) NULL, PRIMARY KEY (person_id, from_date)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-    $db->exec("CREATE TABLE IF NOT EXISTS staff_days (d DATE NOT NULL, role VARCHAR(8) NOT NULL, pos INT NOT NULL, prefix VARCHAR(16), name VARCHAR(255), PRIMARY KEY (d, role, pos)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-    $db->exec("CREATE TABLE IF NOT EXISTS meta (k VARCHAR(32) NOT NULL PRIMARY KEY, v BIGINT NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-    $db->exec("CREATE TABLE IF NOT EXISTS people (id VARCHAR(40) NOT NULL PRIMARY KEY, data JSON NOT NULL, rev INT NOT NULL DEFAULT 1) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-    $db->exec("CREATE TABLE IF NOT EXISTS staff (pos INT NOT NULL PRIMARY KEY, name VARCHAR(255) NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-    $db->exec("CREATE TABLE IF NOT EXISTS days (d DATE NOT NULL PRIMARY KEY, seq TINYINT NOT NULL, data JSON NOT NULL, rev INT NOT NULL DEFAULT 1) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-    $db->exec("CREATE TABLE IF NOT EXISTS attendance (d DATE NOT NULL, person_id VARCHAR(40) NOT NULL, overnight TINYINT NOT NULL DEFAULT 0, person_name VARCHAR(255) NULL, kind VARCHAR(16) NULL, PRIMARY KEY (d, person_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-    $db->exec("CREATE TABLE IF NOT EXISTS log (id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY, ts VARCHAR(40), type VARCHAR(16), target VARCHAR(64), field VARCHAR(64), old_v JSON NULL, new_v JSON NULL, d VARCHAR(10)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-    $db->exec("CREATE TABLE IF NOT EXISTS users (id INT NOT NULL AUTO_INCREMENT PRIMARY KEY, username VARCHAR(64) NOT NULL, pass_hash VARCHAR(255) NOT NULL, role VARCHAR(8) NOT NULL DEFAULT 'user', status VARCHAR(8) NOT NULL DEFAULT 'pending', created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, last_login TIMESTAMP NULL DEFAULT NULL, fails INT NOT NULL DEFAULT 0, fail_ts INT NOT NULL DEFAULT 0, UNIQUE KEY uq_username (username)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-    $db->exec("CREATE TABLE IF NOT EXISTS sessions (token_hash CHAR(64) NOT NULL PRIMARY KEY, user_id INT NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, KEY idx_user (user_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-    $db->exec("CREATE TABLE IF NOT EXISTS feedback (id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, username VARCHAR(64) NOT NULL, body TEXT NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    $t = 'ENGINE=InnoDB DEFAULT CHARSET=utf8mb4';
+    $db->exec("CREATE TABLE IF NOT EXISTS meta (k VARCHAR(32) NOT NULL PRIMARY KEY, v BIGINT NOT NULL) $t");
+    $db->exec("CREATE TABLE IF NOT EXISTS people (id VARCHAR(40) NOT NULL PRIMARY KEY, data JSON NOT NULL, rev INT NOT NULL DEFAULT 1, upd BIGINT NOT NULL DEFAULT 0) $t");
+    $db->exec("CREATE TABLE IF NOT EXISTS staff (pos INT NOT NULL PRIMARY KEY, name VARCHAR(255) NOT NULL) $t");
+    $db->exec("CREATE TABLE IF NOT EXISTS days (d DATE NOT NULL PRIMARY KEY, seq TINYINT NOT NULL, data JSON NOT NULL, rev INT NOT NULL DEFAULT 1, upd BIGINT NOT NULL DEFAULT 0) $t");
+    $db->exec("CREATE TABLE IF NOT EXISTS attendance (d DATE NOT NULL, person_id VARCHAR(40) NOT NULL, overnight TINYINT NOT NULL DEFAULT 0, person_name VARCHAR(255) NULL, kind VARCHAR(16) NULL, PRIMARY KEY (d, person_id)) $t");
+    $db->exec("CREATE TABLE IF NOT EXISTS log (id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY, ts VARCHAR(40), type VARCHAR(16), target VARCHAR(64), field VARCHAR(64), old_v JSON NULL, new_v JSON NULL, d VARCHAR(10)) $t");
+    $db->exec("CREATE TABLE IF NOT EXISTS people_history (id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY, person_id VARCHAR(40) NOT NULL, rev INT NOT NULL, data JSON NOT NULL, deleted TINYINT NOT NULL DEFAULT 0, saved_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, KEY idx_person (person_id)) $t");
+    $db->exec("CREATE TABLE IF NOT EXISTS days_history (id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY, d DATE NOT NULL, rev INT NOT NULL, seq TINYINT NOT NULL, data JSON NOT NULL, saved_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, KEY idx_d (d)) $t");
+    $db->exec("CREATE TABLE IF NOT EXISTS person_settings (person_id VARCHAR(40) NOT NULL, from_date VARCHAR(10) NOT NULL, name VARCHAR(255), kind VARCHAR(16), note TEXT, vital TINYINT, meds VARCHAR(255), meals VARCHAR(64), delivery VARCHAR(64), PRIMARY KEY (person_id, from_date)) $t");
+    $db->exec("CREATE TABLE IF NOT EXISTS person_absence (person_id VARCHAR(40) NOT NULL, from_date VARCHAR(10) NOT NULL, to_date VARCHAR(10) NULL, PRIMARY KEY (person_id, from_date)) $t");
+    $db->exec("CREATE TABLE IF NOT EXISTS staff_days (d DATE NOT NULL, role VARCHAR(8) NOT NULL, pos INT NOT NULL, prefix VARCHAR(16), name VARCHAR(255), PRIMARY KEY (d, role, pos)) $t");
+    $db->exec("CREATE TABLE IF NOT EXISTS users (id INT NOT NULL AUTO_INCREMENT PRIMARY KEY, username VARCHAR(64) NOT NULL, pass_hash VARCHAR(255) NOT NULL, role VARCHAR(8) NOT NULL DEFAULT 'user', status VARCHAR(8) NOT NULL DEFAULT 'pending', created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, last_login TIMESTAMP NULL DEFAULT NULL, fails INT NOT NULL DEFAULT 0, fail_ts INT NOT NULL DEFAULT 0, upd BIGINT NOT NULL DEFAULT 0, UNIQUE KEY uq_username (username)) $t");
+    $db->exec("CREATE TABLE IF NOT EXISTS sessions (token_hash CHAR(64) NOT NULL PRIMARY KEY, user_id INT NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, KEY idx_user (user_id)) $t");
+    $db->exec("CREATE TABLE IF NOT EXISTS feedback (id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, username VARCHAR(64) NOT NULL, body TEXT NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP) $t");
+    $db->exec("CREATE TABLE IF NOT EXISTS tombstones (kind VARCHAR(8) NOT NULL, k VARCHAR(190) NOT NULL, upd BIGINT NOT NULL, PRIMARY KEY (kind, k)) $t");
+    $db->exec("CREATE TABLE IF NOT EXISTS settings (k VARCHAR(40) NOT NULL PRIMARY KEY, v TEXT NOT NULL) $t");
     $db->exec("INSERT IGNORE INTO meta (k, v) VALUES ('counter', 0)");
-    // upgrade of an older database: add readable columns and fill history from the existing data (runs once)
-    $has = (int)$db->query("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'attendance' AND COLUMN_NAME = 'person_name'")->fetchColumn();
-    if ($has === 0) {
+    // older databases: add what is missing (runs only once)
+    $col = function ($table, $c) use ($db) {
+        return (int)$db->query("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '$table' AND COLUMN_NAME = '$c'")->fetchColumn();
+    };
+    if ($col('attendance', 'person_name') === 0) {
         $db->exec("ALTER TABLE attendance ADD COLUMN person_name VARCHAR(255) NULL");
         $db->exec("ALTER TABLE attendance ADD COLUMN kind VARCHAR(16) NULL");
         $db->exec("INSERT INTO people_history (person_id, rev, data) SELECT id, rev, data FROM people");
@@ -65,9 +65,22 @@ function db_connect() {
         foreach ($db->query('SELECT id, data FROM people')->fetchAll() as $r) { mirror_person($db, $r['id'], $r['data']); }
         foreach ($db->query('SELECT d, data FROM days')->fetchAll() as $r) { mirror_day($db, $r['d'], $r['data']); }
     }
+    foreach (['people', 'days', 'users'] as $tb) {
+        if ($col($tb, 'upd') === 0) { $db->exec("ALTER TABLE $tb ADD COLUMN upd BIGINT NOT NULL DEFAULT 0"); }
+    }
     return $db;
 }
 
+// the built-in database (A)
+function db_connect() {
+    return db_open(
+        cfg('db_host', 'DB_HOST', 'localhost'),
+        cfg('db_port', 'DB_PORT', '3306'),
+        cfg('db_name', 'DB_NAME', 'meibo'),
+        cfg('db_user', 'DB_USER', 'meibo'),
+        cfg('db_pass', 'DB_PASS', '')
+    );
+}
 
 // ---------- readable mirrors and full history (best effort, never breaks saving) ----------
 function pick_version($p, $d) {
@@ -196,25 +209,4 @@ function start_session($db, $uid) {
     $tok = bin2hex(random_bytes(32));
     $db->prepare('INSERT INTO sessions (token_hash, user_id) VALUES (?, ?)')->execute([hash('sha256', $tok), $uid]);
     setcookie('meibo_sid', $tok, ['expires' => time() + 10 * 365 * 86400, 'path' => '/', 'httponly' => true, 'samesite' => 'Lax', 'secure' => is_https()]);
-}
-
-// true until the connection to MySQL has been set up (first launch).
-// Not needed when: settings were saved by setup.php (config.local.php), config.php was edited by hand,
-// or the database already has accounts (an installation made with an older version keeps working).
-function setup_needed() {
-    static $r = null;
-    if ($r !== null) { return $r; }
-    $r = true;
-    if (is_file(__DIR__ . '/config.local.php')) { return $r = false; }
-    $f = __DIR__ . '/config.php';
-    if (is_file($f)) {
-        $c = require $f;
-        if (is_array($c) && isset($c['db_pass']) && $c['db_pass'] !== 'CHANGE-ME') { return $r = false; }
-    }
-    try {
-        $db = db_connect();
-        if ((int)$db->query('SELECT COUNT(*) FROM users')->fetchColumn() > 0) { return $r = false; }
-    } catch (Throwable $e) {
-    }
-    return $r;
 }

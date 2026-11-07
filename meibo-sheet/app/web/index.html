@@ -151,14 +151,14 @@ function statsHTML(){
  if(sk.length)h+='<h4>Сотрудники (смен за месяц)</h4>'+tb(['','明','日勤','夜勤','всего'],sk.map(nm=>`<tr><td>${esc(nm)}</td><td>${sc[nm][0]}</td><td>${sc[nm][1]}</td><td>${sc[nm][2]}</td><td>${sm_(sc[nm],x=>x)}</td></tr>`).join(''));
  return h}
 /* ---- server sync (MySQL through api.php) ---- */
-let snap={},busy=false,dirty=false,pend=false,timer=0;
-const jp=(a,b)=>fetch('api.php?a='+a,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(r=>{if(r.status===401){ME=null;showAuth();throw 0}if(!r.ok)throw 0;return r.json()});
+let snap={},busy=false,dirty=false,pend=false,timer=0,lastTick=0;
+const jp=(a,b)=>fetch('api.php?a='+a,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(r=>{if(r.status===401){ME=null;wipeMem();showAuth();throw 0}if(!r.ok)throw 0;return r.json()});
 const ser=o=>{const c={...o};delete c.rev;return JSON.stringify(c)};
 function adopt(r){DB.people=r.people.map(x=>{const o=JSON.parse(x.data);o.id=x.id;o.rev=x.rev;return o});DB.staff=r.staff;DB.counter=r.counter;DB.days={};
  r.days.forEach(x=>{const o=JSON.parse(x.data);o.seq=x.seq;o.rev=x.rev;DB.days[x.d]=o});
- snap={};DB.people.forEach(p=>snap['p'+p.id]=ser(p));Object.keys(DB.days).forEach(k=>snap['d'+k]=ser(DB.days[k]));snap.staff=JSON.stringify(DB.staff)}
+ snap={};DB.people.forEach(p=>snap['p'+p.id]=ser(p));Object.keys(DB.days).forEach(k=>snap['d'+k]=ser(DB.days[k]));snap.staff=JSON.stringify(DB.staff);cacheSave()}
 async function reload(){try{const r=await jp('load',{});adopt(r);online=true}catch(e){online=false}ui();render()}
-const schedule=()=>{pend=true;clearTimeout(timer);timer=setTimeout(flush,400)};
+const schedule=()=>{pend=true;cacheSave();clearTimeout(timer);timer=setTimeout(flush,400)};
 const unsynced=()=>DB.people.some(p=>snap['p'+p.id]!==ser(p))||Object.keys(DB.days).some(k=>snap['d'+k]!==ser(DB.days[k]))||snap.staff!==JSON.stringify(DB.staff)||Object.keys(snap).some(k=>k[0]==='p'&&!DB.people.some(p=>'p'+p.id===k));
 async function flush(){pend=false;if(busy){dirty=true;return}busy=true;
  try{
@@ -169,9 +169,9 @@ async function flush(){pend=false;if(busy){dirty=true;return}busy=true;
   if(DB.log.length){const e=DB.log.splice(0);try{await jp('log',{entries:e})}catch(x){DB.log.unshift(...e);throw x}}
   if(!online){online=true;ui()}
  }catch(e){if(online){online=false;ui()}}
- finally{busy=false;if(dirty){dirty=false;flush()}}}
+ finally{busy=false;cacheSave();if(dirty){dirty=false;flush()}}}
 async function conflict(){msg='他の端末で更新されました。最新の状態を読み込みました。';await reload()}
-function poll(){if(!ME||busy||dirty||pend)return;if(ME.role==='admin')admRefresh();const np=document.querySelector('[data-new="1"]');if(np&&np.value)return;if(unsynced()){flush();return}const a=document.activeElement;if(a&&/INPUT|SELECT|TEXTAREA/.test(a.tagName))return;reload()}
+function poll(){if(busy||dirty||pend)return;if(!online){boot();return}if(!ME)return;if(Date.now()-lastTick>120000){lastTick=Date.now();jp('sync_tick',{}).catch(()=>{})}if(ME.role==='admin')admRefresh();const np=document.querySelector('[data-new="1"]');if(np&&np.value)return;if(unsynced()){flush();return}const a=document.activeElement;if(a&&/INPUT|SELECT|TEXTAREA/.test(a.tagName))return;reload()}
 async function doPrint(){ensure();clearTimeout(timer);await flush();if(busy)await new Promise(r=>setTimeout(r,800));render();msg='';ui();printed=false;document.title=fname();try{window.print()}catch(e){}setTimeout(()=>{if(!printed)saveSheet();document.title='利用者名簿'},1200)}
 /* ---- print queue: up to 15 finished days, saved together as one PDF ---- */
 let Q=[];try{Q=JSON.parse(localStorage.getItem('meibo_q')||'[]')}catch(e){}
@@ -198,17 +198,46 @@ async function authGo(){const u=$('#au').value.trim(),p=$('#ap').value,reg=authM
   if(r.ok){authMsg='';await boot();return}
   authMsg=AUTHERR[r.error]||'エラーが発生しました。'}catch(e){authMsg='サーバーに接続できません。'}
  showAuth()}
-function showDbSetup(){const a=$('#auth');a.style.display='flex';a.innerHTML='<div class="box"><h3>利用者名簿</h3><p>データベースに接続できません。<br><span class="mut">База данных не настроена или недоступна.</span></p><p><a href="setup.php">Настроить подключение к базе данных</a></p><p><button id="rtry">Повторить</button></p></div>'}
-async function boot(){try{const r=await fetch('api.php?a=me',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});if(r.status===401){try{const st=await fetch('api.php?a=status',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}).then(x=>x.json());if(st.users===0){authMode='register';authMsg='最初に登録したアカウントが管理者になります。'}}catch(e){}showAuth();return}if(r.status===503){let j={};try{j=await r.json()}catch(e){}if(j.error==='setup'){location.href='setup.php';return}showDbSetup();return}if(!r.ok)throw 0;const j=await r.json();ME=j.user;$('#auth').style.display='none';$('#cmb').style.display='block';$('#admb2').style.display=ME.role==='admin'?'block':'none'}catch(e){online=false;ui();return}await reload();if(ME.role==='admin')admRefresh()}
-async function logout(){try{await jp('logout',{})}catch(e){}ME=null;ADM={users:[],comments:[],tab:'s',pending:0,arm:'',link:''};DB={people:[],days:{},staff:[],counter:0,log:[]};snap={};authMode='login';authMsg='';showAuth();ui();render()}
+/* ---- every edit is kept in this browser until it has been synchronised with the database ---- */
+const CK='meibo_cache';
+function cacheSave(){if(!ME)return;try{localStorage.setItem(CK,JSON.stringify({DB:DB,snap:snap,me:ME}))}catch(e){}}
+function cacheInit(){try{const c=JSON.parse(localStorage.getItem(CK)||'null');if(c&&c.DB&&c.DB.people){DB=c.DB;if(!DB.staff)DB.staff=[];if(!DB.log)DB.log=[];snap=c.snap||{};return c.me||null}}catch(e){}return null}
+function wipeMem(){DB={people:[],days:{},staff:[],counter:0,log:[]};snap={}}
+function showBtns(){$('#cmb').style.display=ME?'block':'none';$('#admb2').style.display=ME&&ME.role==='admin'?'block':'none'}
+async function boot(){
+ const cm=ME?null:cacheInit();
+ let r=null;try{r=await fetch('api.php?a=me',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})}catch(e){}
+ if(r&&r.status===401){wipeMem();try{const st=await fetch('api.php?a=status',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}).then(x=>x.json());if(st.users===0){authMode='register';authMsg='最初に登録したアカウントが管理者になります。'}}catch(e){}showAuth();return}
+ if(r&&r.status===503){let j={};try{j=await r.json()}catch(e){}if(j.error==='setup'){wipeMem();location.href='setup.php';return}r=null}
+ if(!r||!r.ok){online=false;if(cm&&!ME)ME=cm;$('#auth').style.display='none';showBtns();ui();render();return}
+ let j;try{j=await r.json()}catch(e){online=false;ui();render();return}
+ ME=j.user;online=true;$('#auth').style.display='none';showBtns();
+ if(unsynced())await flush();else await reload();
+ cacheSave();if(ME.role==='admin')admRefresh()}
+async function logout(){try{if(online&&ME&&unsynced())await flush()}catch(e){}
+ const keep=unsynced();try{await jp('logout',{})}catch(e){}
+ if(!keep){try{localStorage.removeItem(CK)}catch(e){}}else{try{const c=JSON.parse(localStorage.getItem(CK)||'null');if(c){c.me=null;localStorage.setItem(CK,JSON.stringify(c))}}catch(e){}}
+ ME=null;ADM={users:[],comments:[],tab:'s',pending:0,arm:'',link:''};wipeMem();authMode='login';authMsg='';showAuth();ui();render()}
 async function admRefresh(){try{const r=await jp('users_list',{});ADM.users=r.users;ADM.pending=r.users.filter(x=>x.status==='pending').length;const b=$('#admb2');if(b)b.textContent='Админка'+(ADM.pending?' ('+ADM.pending+')':'')}catch(e){}}
-async function admOpen(tab){ADM.tab=tab||ADM.tab||'s';await admRefresh();try{ADM.comments=(await jp('comments_list',{})).comments}catch(e){}try{ADM.link=(await jp('admin_link',{})).url}catch(e){ADM.link=''}admDraw();$('#admw').style.display='block'}
+async function admOpen(tab){ADM.tab=tab||ADM.tab||'s';await admRefresh();if(ADM.tab==='d')await admLoadDb();try{ADM.comments=(await jp('comments_list',{})).comments}catch(e){}try{ADM.link=(await jp('admin_link',{})).url}catch(e){ADM.link=''}admDraw();$('#admw').style.display='block'}
+const fmtT=ms=>ms?new Date(ms).toLocaleString('ru'):'нет данных';
+async function admLoadDb(){try{ADM.db=await jp('db_info',{})}catch(e){ADM.db=null}}
+function dbTab(){const d=ADM.db;if(!d)return '<div class="mut">Загрузка…</div>';const a=d.a,b=d.b,rp=d.last_sync_report;
+ let h=`<h4>Встроенная база данных (создаёт само приложение)</h4><div class="mut">Работает. MySQL ${esc(a.version)}, база ${esc(a.db)}, хост ${esc(a.host)}<br>людей: ${a.people}, дней: ${a.days}, аккаунтов: ${a.users} · последнее изменение: ${fmtT(a.newest)}</div><h4>Ручное подключение (вторая база данных)</h4>`;
+ if(b.enabled){const s=b.stats;
+  h+=`<div>${esc(b.host)}:${esc(b.port)} · база ${esc(b.name)} · логин ${esc(b.user)}</div><div class="${b.ok?'mut':'err'}">${b.ok?`Работает. MySQL ${esc(s.version)}<br>людей: ${s.people}, дней: ${s.days}, аккаунтов: ${s.users} · последнее изменение: ${fmtT(s.newest)}`:'Нет связи: '+esc(b.error||'')}</div>`;
+  h+=`<div class="mut" style="margin-top:6px">Последняя синхронизация: ${d.last_sync_at?fmtT(d.last_sync_at*1000):'ещё не было'}${rp?` · в ручную базу: ${rp.to_b}, во встроенную: ${rp.to_a}, удалено: ${rp.deleted}, история: ${rp.history}`:''}</div>${d.last_error?`<div class="err">Ошибка последней синхронизации: ${esc(d.last_error)}</div>`:''}`;
+  h+=`<p><button class="p" id="b2sync">Синхронизировать сейчас</button> <button id="b2off">Отключить</button> <span id="b2msg" class="mut"></span></p>`}
+ else h+=`<p class="mut">Не подключена. Введите данные второй базы MySQL (например, на другом сервере) и нажмите «Проверить подключение».</p><div class="eg" style="grid-template-columns:90px 1fr"><b>Хост</b><input type="text" id="b2h" value="localhost"><b>Порт</b><input type="text" id="b2p" value="3306"><b>Имя базы</b><input type="text" id="b2n" value="meibo"><b>Логин</b><input type="text" id="b2u"><b>Пароль</b><input type="password" id="b2w" autocomplete="off"></div><p><button id="b2test">Проверить подключение</button> <button class="p" id="b2save">Подключить и синхронизировать</button> <span id="b2msg" class="mut"></span></p>`;
+ h+=`<p class="mut">Синхронизация идёт в обе стороны: запись, изменённая позже, копируется туда, где информация старее (люди, листы дней, список сотрудников, аккаунты, комментарии, история изменений). Автоматически каждые 2 минуты.</p>`;
+ if(ADM.link)h+=`<p><a href="${esc(ADM.link)}" target="_blank" rel="noopener noreferrer">Открыть страницу просмотра таблиц (только чтение, свой пароль)</a></p>`;
+ return h}
 function admDraw(){const t=ADM.tab,ar=(id,op,l)=>`<button data-adm="${op}" data-id="${id}">${ADM.arm===id+':'+op?'Точно?':l}</button>`,tb=(k,l)=>`<button data-tab="${k}" ${t===k?'class="p"':''}>${l}</button>`;
  let h=`<button id="admc" style="float:right">Закрыть</button><h3>Администратор</h3><div class="row">${tb('s','Статистика')}${tb('u','Аккаунты'+(ADM.pending?' (ждут: '+ADM.pending+')':''))}${tb('c','Комментарии ('+ADM.comments.length+')')}${tb('d','База данных')}</div>`;
  if(t==='s')h+=statsHTML();
  else if(t==='u')h+='<table class="sx"><tr><th>Пользователь</th><th>Роль</th><th>Статус</th><th></th></tr>'+ADM.users.map(u=>`<tr><td>${esc(u.username)}</td><td>${u.role==='admin'?'администратор':'пользователь'}</td><td>${{pending:'ждёт подтверждения',active:'активен',blocked:'остановлен'}[u.status]||esc(u.status)}</td><td>${u.role==='admin'?'':`${u.status!=='active'?ar(u.id,'approve','Подтвердить'):''} ${u.status==='active'?ar(u.id,'block','Остановить'):''} ${ar(u.id,'delete','Удалить')}`}</td></tr>`).join('')+'</table>';
  else if(t==='c')h+=ADM.comments.length?ADM.comments.map(c=>`<div class="hi"><b>${esc(c.username)}</b> <span class="mut">${esc(c.created_at)}</span> ${ar(c.id,'cdel','Удалить')}<pre style="white-space:pre-wrap;margin:4px 0">${esc(c.body)}</pre></div>`).join(''):'<div class="mut">Комментариев нет</div>';
- else h+=`<p><button id="dbt">Проверить подключение к базе данных</button> <span id="dbr" class="mut"></span></p>`+(ADM.link?`<p>Просмотр таблиц базы данных (только чтение, у страницы свой пароль).</p><p><a href="${esc(ADM.link)}" target="_blank" rel="noopener noreferrer">Открыть страницу базы данных</a></p>`:'<div class="mut">Недоступно</div>');
+ else h+=dbTab();
  $('#admw').innerHTML='<div class="win">'+h+'</div>'}
 function cmOpen(){const w=$('#cmw');w.style.display='block';w.innerHTML='<div class="win"><h3>開発者へのコメント</h3><p class="mut">ご意見・不具合などを自由に書いてください。送信した内容は画面には表示されません。</p><textarea id="cmt" rows="6" style="width:100%"></textarea><p><button class="p" id="cms">送信</button> <button id="cmx">閉じる</button> <span id="cmr" class="mut"></span></p></div>'}
 function sheetInner(){
@@ -330,7 +359,7 @@ function openStats(){admOpen('s')}
 $('#stx').addEventListener('click',e=>{if(e.target.id==='stc'||e.target.id==='stx')$('#stx').style.display='none'});
 $('#stx').addEventListener('change',e=>{if(e.target.id==='sm'){sm=e.target.value||null;openStats()}});
 let tap=[];
-$('#auth').addEventListener('click',e=>{if(e.target.id==='rtry')boot();if(e.target.id==='ago')authGo();if(e.target.id==='asw'){e.preventDefault();authMode=authMode==='login'?'register':'login';authMsg='';showAuth()}});
+$('#auth').addEventListener('click',e=>{if(e.target.id==='ago')authGo();if(e.target.id==='asw'){e.preventDefault();authMode=authMode==='login'?'register':'login';authMsg='';showAuth()}});
 $('#auth').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.tagName==='INPUT')authGo()});
 $('#admb2').addEventListener('click',()=>admOpen());
 $('#cmb').addEventListener('click',cmOpen);
@@ -338,8 +367,14 @@ $('#cmw').addEventListener('click',e=>{if(e.target.id==='cmx'||e.target.id==='cm
  if(e.target.id==='cms'){const t=$('#cmt').value.trim();if(!t)return;jp('comment_add',{text:t}).then(r=>{$('#cmr').textContent=r.ok?'送信しました。ありがとうございます。':'送信できませんでした。';if(r.ok)$('#cmt').value=''}).catch(()=>{$('#cmr').textContent='送信できませんでした。'})}});
 $('#admw').addEventListener('click',async e=>{const t=e.target;
  if(t.id==='admc'||t.id==='admw'){$('#admw').style.display='none';return}
- if(t.id==='dbt'){const o=$('#dbr');o.textContent='Проверяю…';try{const r=await jp('db_test',{});o.textContent='Работает: MySQL '+r.version+', база '+r.db+', хост '+r.host+', таблиц: '+r.tables}catch(e){o.textContent='Нет подключения'}return}
- if(t.dataset&&t.dataset.tab){ADM.tab=t.dataset.tab;ADM.arm='';admDraw();return}
+ if(t.id==='b2test'||t.id==='b2save'){const g=i=>$('#'+i).value,o=$('#b2msg');o.textContent='Проверяю…';
+  try{const r=await jp(t.id==='b2test'?'db2_test':'db2_save',{host:g('b2h'),port:g('b2p'),name:g('b2n'),user:g('b2u'),pass:g('b2w')});
+   if(!r.ok){o.textContent=r.msg;return}
+   if(t.id==='b2test'){o.textContent=r.msg;return}
+   await admLoadDb();admDraw()}catch(e){o.textContent='Нет ответа от сервера'}return}
+ if(t.id==='b2sync'){const o=$('#b2msg');o.textContent='Синхронизирую…';try{const r=await jp('db_sync',{});await admLoadDb();admDraw();const o2=$('#b2msg');if(o2)o2.textContent=r.ok?'Готово':(r.msg||'Ошибка')}catch(e){o.textContent='Нет ответа от сервера'}return}
+ if(t.id==='b2off'){if(ADM.arm!=='b2off'){ADM.arm='b2off';t.textContent='Точно отключить?';return}ADM.arm='';try{await jp('db2_remove',{})}catch(e){}await admLoadDb();admDraw();return}
+ if(t.dataset&&t.dataset.tab){ADM.tab=t.dataset.tab;ADM.arm='';if(ADM.tab==='d'){ADM.db=null;admDraw();await admLoadDb()}admDraw();return}
  const op=t.dataset&&t.dataset.adm;if(!op)return;const key=t.dataset.id+':'+op;
  if(op!=='approve'&&ADM.arm!==key){ADM.arm=key;admDraw();return}
  ADM.arm='';try{if(op==='cdel')await jp('comment_delete',{id:+t.dataset.id});else await jp('user_set',{id:+t.dataset.id,op});await admRefresh();ADM.comments=(await jp('comments_list',{})).comments}catch(x){}admDraw()});

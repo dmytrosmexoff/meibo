@@ -1,5 +1,6 @@
 <?php
 require __DIR__ . '/db.php';
+require __DIR__ . '/sync.php';
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 
@@ -12,8 +13,6 @@ function out($a, $code = 200) {
 $a = isset($_GET['a']) ? $_GET['a'] : '';
 $in = json_decode(file_get_contents('php://input'), true);
 if (!is_array($in)) { $in = []; }
-
-if (setup_needed()) { out(['error' => 'setup'], 503); }
 
 try {
     $db = db_connect();
@@ -34,14 +33,14 @@ try {
         if ((int)$st->fetchColumn() > 0) { out(['ok' => false, 'error' => 'exists']); }
         $hash = password_hash($pass, PASSWORD_DEFAULT);
         // the very first account becomes the administrator and is active at once (atomic)
-        $ins = $db->prepare("INSERT INTO users (username, pass_hash, role, status) SELECT ?, ?, 'admin', 'active' FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM users)");
-        $ins->execute([$name, $hash]);
+        $ins = $db->prepare("INSERT INTO users (username, pass_hash, role, status, upd) SELECT ?, ?, 'admin', 'active', ? FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM users)");
+        $ins->execute([$name, $hash, now_ms()]);
         if ($ins->rowCount() === 1) {
             start_session($db, (int)$db->lastInsertId());
             out(['ok' => true, 'status' => 'active', 'role' => 'admin']);
         }
         // everybody else waits until the administrator approves (once)
-        $db->prepare("INSERT INTO users (username, pass_hash, role, status) VALUES (?, ?, 'user', 'pending')")->execute([$name, $hash]);
+        $db->prepare("INSERT INTO users (username, pass_hash, role, status, upd) VALUES (?, ?, 'user', 'pending', ?)")->execute([$name, $hash, now_ms()]);
         out(['ok' => true, 'status' => 'pending', 'role' => 'user']);
     }
 
@@ -117,14 +116,14 @@ try {
         $st->execute([$id]);
         $cur = $st->fetchColumn();
         if ($cur === false) {
-            $db->prepare('INSERT INTO people (id, data, rev) VALUES (?, ?, 1)')->execute([$id, $data]);
+            $db->prepare('INSERT INTO people (id, data, rev, upd) VALUES (?, ?, 1, ?)')->execute([$id, $data, now_ms()]);
             $new = 1;
         } elseif (!$force && (int)$cur !== $rev) {
             $db->rollBack();
             out(['conflict' => true]);
         } else {
             $new = (int)$cur + 1;
-            $db->prepare('UPDATE people SET data = ?, rev = ? WHERE id = ?')->execute([$data, $new, $id]);
+            $db->prepare('UPDATE people SET data = ?, rev = ?, upd = ? WHERE id = ?')->execute([$data, $new, now_ms(), $id]);
         }
         $db->prepare('INSERT INTO people_history (person_id, rev, data, deleted) VALUES (?, ?, ?, 0)')->execute([$id, $new, $data]);
         $db->commit();
@@ -141,6 +140,7 @@ try {
         }
         $db->prepare('DELETE FROM person_settings WHERE person_id = ?')->execute([$id]);
         $db->prepare('DELETE FROM person_absence WHERE person_id = ?')->execute([$id]);
+        tomb_put($db, 'person|' . $id, now_ms());
         $db->prepare('DELETE FROM people WHERE id = ?')->execute([$id]);
         $db->prepare('DELETE FROM attendance WHERE person_id = ?')->execute([$id]);
         out(['ok' => true]);
@@ -152,6 +152,7 @@ try {
         $ins = $db->prepare('INSERT INTO staff (pos, name) VALUES (?, ?)');
         foreach ($names as $i => $nm) { $ins->execute([$i, (string)$nm]); }
         $db->commit();
+        meta_put($db, 'staff_ts', now_ms());
         out(['ok' => true]);
 
     case 'save_day':
@@ -170,7 +171,7 @@ try {
             $n = (int)$db->query('SELECT LAST_INSERT_ID()')->fetchColumn();
             $seq = (($n - 1) % 4) + 1;
             $new = 1;
-            $db->prepare('INSERT INTO days (d, seq, data, rev) VALUES (?, ?, ?, 1)')->execute([$d, $seq, $data]);
+            $db->prepare('INSERT INTO days (d, seq, data, rev, upd) VALUES (?, ?, ?, 1, ?)')->execute([$d, $seq, $data, now_ms()]);
         } else {
             if (!$force && (int)$row['rev'] !== $rev) {
                 $db->rollBack();
@@ -178,7 +179,7 @@ try {
             }
             $seq = (int)$row['seq'];
             $new = (int)$row['rev'] + 1;
-            $db->prepare('UPDATE days SET data = ?, rev = ? WHERE d = ?')->execute([$data, $new, $d]);
+            $db->prepare('UPDATE days SET data = ?, rev = ?, upd = ? WHERE d = ?')->execute([$data, $new, now_ms(), $d]);
         }
         $db->prepare('INSERT INTO days_history (d, rev, seq, data) VALUES (?, ?, ?, ?)')->execute([$d, $new, $seq, $data]);
         $db->commit();
@@ -222,11 +223,15 @@ try {
         $id = (int)(isset($in['id']) ? $in['id'] : 0);
         $op = (string)(isset($in['op']) ? $in['op'] : '');
         if ($op === 'approve') {
-            $db->prepare("UPDATE users SET status = 'active', fails = 0 WHERE id = ?")->execute([$id]);
+            $db->prepare("UPDATE users SET status = 'active', fails = 0, upd = ? WHERE id = ?")->execute([now_ms(), $id]);
         } elseif ($op === 'block') {
-            $db->prepare("UPDATE users SET status = 'blocked' WHERE id = ? AND role <> 'admin'")->execute([$id]);
+            $db->prepare("UPDATE users SET status = 'blocked', upd = ? WHERE id = ? AND role <> 'admin'")->execute([now_ms(), $id]);
             $db->prepare("DELETE s FROM sessions s JOIN users u ON u.id = s.user_id WHERE u.id = ? AND u.role <> 'admin'")->execute([$id]);
         } elseif ($op === 'delete') {
+            $st = $db->prepare("SELECT username FROM users WHERE id = ? AND role <> 'admin'");
+            $st->execute([$id]);
+            $un = $st->fetchColumn();
+            if ($un !== false) { tomb_put($db, 'user|' . $un, now_ms()); }
             $db->prepare("DELETE s FROM sessions s JOIN users u ON u.id = s.user_id WHERE u.id = ? AND u.role <> 'admin'")->execute([$id]);
             $db->prepare("DELETE FROM users WHERE id = ? AND role <> 'admin'")->execute([$id]);
         }
@@ -240,14 +245,84 @@ try {
 
     case 'comment_delete':
         if (!$isAdmin) { out(['error' => 'forbidden'], 403); }
-        $db->prepare('DELETE FROM feedback WHERE id = ?')->execute([(int)(isset($in['id']) ? $in['id'] : 0)]);
+        $fid = (int)(isset($in['id']) ? $in['id'] : 0);
+        $st = $db->prepare('SELECT username, body, created_at FROM feedback WHERE id = ?');
+        $st->execute([$fid]);
+        $fr = $st->fetch();
+        if ($fr !== false) { tomb_put($db, 'fb|' . fb_key($fr), now_ms()); }
+        $db->prepare('DELETE FROM feedback WHERE id = ?')->execute([$fid]);
         out(['ok' => true]);
 
-    case 'db_test':
+    case 'db_info':
         if (!$isAdmin) { out(['error' => 'forbidden'], 403); }
-        $ver = (string)$db->query('SELECT VERSION()')->fetchColumn();
-        $tc = (int)$db->query('SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE()')->fetchColumn();
-        out(['ok' => true, 'version' => $ver, 'db' => (string)cfg('db_name', 'DB_NAME', 'meibo'), 'host' => (string)cfg('db_host', 'DB_HOST', 'localhost'), 'tables' => $tc]);
+        $s = settings_get($db);
+        $info = ['a' => db_stats($db), 'b' => ['enabled' => !empty($s['b_enabled'])]];
+        $info['a']['host'] = (string)cfg('db_host', 'DB_HOST', 'localhost');
+        if (!empty($s['b_enabled'])) {
+            $info['b']['host'] = $s['b_host'];
+            $info['b']['port'] = isset($s['b_port']) ? $s['b_port'] : '3306';
+            $info['b']['name'] = $s['b_name'];
+            $info['b']['user'] = $s['b_user'];
+            try {
+                $B = db_open_b($db, 3);
+                $info['b']['ok'] = true;
+                $info['b']['stats'] = db_stats($B);
+            } catch (Throwable $e) {
+                $info['b']['ok'] = false;
+                $info['b']['error'] = $e->getMessage();
+            }
+        }
+        $info['last_sync_at'] = isset($s['last_sync_at']) ? (int)$s['last_sync_at'] : 0;
+        $info['last_sync_report'] = isset($s['last_sync_report']) ? json_decode($s['last_sync_report'], true) : null;
+        $info['last_error'] = isset($s['last_error']) ? $s['last_error'] : '';
+        out($info);
+
+    case 'db2_test':
+        if (!$isAdmin) { out(['error' => 'forbidden'], 403); }
+        $f = [];
+        $err = check_b_fields($in, $f);
+        if ($err !== null) { out(['ok' => false, 'msg' => $err]); }
+        $inf = [];
+        $err = try_connect($f['host'], $f['port'], $f['name'], $f['user'], $f['pass'], $inf);
+        if ($err !== null) { out(['ok' => false, 'msg' => $err]); }
+        out(['ok' => true, 'msg' => 'Подключение успешно. MySQL ' . $inf['version'] . '. ' . ($inf['db_exists'] ? 'База «' . $f['name'] . '» найдена.' : 'База «' . $f['name'] . '» ещё не создана: она будет создана при подключении.')]);
+
+    case 'db2_save':
+        if (!$isAdmin) { out(['error' => 'forbidden'], 403); }
+        $f = [];
+        $err = check_b_fields($in, $f);
+        if ($err !== null) { out(['ok' => false, 'msg' => $err]); }
+        $inf = [];
+        $err = try_connect($f['host'], $f['port'], $f['name'], $f['user'], $f['pass'], $inf);
+        if ($err !== null) { out(['ok' => false, 'msg' => $err]); }
+        if ($f['name'] === (string)cfg('db_name', 'DB_NAME', 'meibo') && $f['host'] === (string)cfg('db_host', 'DB_HOST', 'localhost') && (int)$f['port'] === (int)cfg('db_port', 'DB_PORT', '3306')) {
+            out(['ok' => false, 'msg' => 'Это та же самая встроенная база. Укажите другую базу данных.']);
+        }
+        try {
+            db_open($f['host'], $f['port'], $f['name'], $f['user'], $f['pass'], 4);
+        } catch (Throwable $e) {
+            out(['ok' => false, 'msg' => 'Не удалось подготовить базу: ' . $e->getMessage()]);
+        }
+        foreach (['host', 'port', 'name', 'user', 'pass'] as $k) { settings_put($db, 'b_' . $k, $f[$k]); }
+        settings_put($db, 'b_enabled', '1');
+        settings_put($db, 'last_sync_at', '0');
+        out(['ok' => true, 'sync' => sync_try($db, true, true)]);
+
+    case 'db2_remove':
+        if (!$isAdmin) { out(['error' => 'forbidden'], 403); }
+        foreach (['b_host', 'b_port', 'b_name', 'b_user', 'b_pass', 'last_sync_report', 'last_error'] as $k) {
+            $db->prepare('DELETE FROM settings WHERE k = ?')->execute([$k]);
+        }
+        settings_put($db, 'b_enabled', '0');
+        out(['ok' => true]);
+
+    case 'db_sync':
+        if (!$isAdmin) { out(['error' => 'forbidden'], 403); }
+        out(sync_try($db, true, true));
+
+    case 'sync_tick':
+        $res = sync_try($db, false, false);
+        out(['ran' => !empty($res['ran'])]);
 
     case 'admin_link':
         if (!$isAdmin) { out(['error' => 'forbidden'], 403); }
