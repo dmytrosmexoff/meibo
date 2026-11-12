@@ -1,0 +1,46 @@
+version: "3.7"
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: garage-vehicle-tracker_web_1
+      APP_PORT: 3000
+      # Приложение имеет собственный вход (логин, пароль, PIN мастера), поэтому запрос пароля Umbrel отключён:
+      # иначе страница мастера и уведомления не откроются из интернета. Верните "true", если нужна двойная защита.
+      PROXY_AUTH_ADD: "false"
+
+  web:
+    image: node:20-alpine
+    restart: on-failure
+    working_dir: /app
+    command: sh -c "cmp -s package.json node_modules/.pkg.json || { npm install --omit=dev --no-audit --no-fund && cp package.json node_modules/.pkg.json; }; node server.js"
+    stop_grace_period: 30s
+    depends_on:
+      - db
+    environment:
+      PORT: 3000
+      DB_HOST: db
+      DB_USER: garage
+      DB_PASSWORD: ${APP_SEED}
+      DB_NAME: garage
+      CONFIG_PATH: /config/db.json
+    volumes:
+      - ${APP_DATA_DIR}/server:/app
+      - ${APP_DATA_DIR}/data/config:/config
+
+  db:
+    image: mysql:8.0
+    restart: on-failure
+    stop_grace_period: 1m
+    command: >-
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --performance-schema=OFF
+      --innodb-buffer-pool-size=128M
+    environment:
+      MYSQL_ROOT_PASSWORD: ${APP_SEED}
+      MYSQL_DATABASE: garage
+      MYSQL_USER: garage
+      MYSQL_PASSWORD: ${APP_SEED}
+    volumes:
+      - ${APP_DATA_DIR}/data/mysql:/var/lib/mysql

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Garage Journal</title>
+<meta name="theme-color" content="#1f5f7a">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Garage">
+<script src="i18n.js"></script>
+<script src="qr.js"></script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap"><div id="main"></div></div>
+
+<dialog id="dlg">
+  <h3 id="dTitle"></h3>
+  <p class="lead" id="dLead"></p>
+  <p class="small" id="dSmall"></p>
+  <div class="f" id="dBody"></div>
+  <p class="err" id="dErr"></p>
+  <div class="btns"><button id="dCancel">Отмена</button><button class="p" id="dOk">Сохранить</button></div>
+</dialog>
+<dialog id="typeDlg" class="tdlg">
+  <div class="tdh"><h3>Выберите тип транспорта</h3><button id="typeClose" aria-label="Закрыть">✕</button></div>
+  <div id="typeBody"></div>
+</dialog>
+<input id="file" type="file" accept=".json" hidden>
+<div id="rep"></div>
+<div id="toast" class="toast" role="status"></div>
+<div id="sync" class="sync"></div>
+<div id="lb" hidden></div>
+<div id="sysbar"></div>
+<div id="reqbar"></div>
+
+<script src="app.js" defer></script>
+</body>
+</html>
