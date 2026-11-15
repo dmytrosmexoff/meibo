@@ -304,3 +304,40 @@ function sync_try($A, $force, $full) {
         $A->query("SELECT RELEASE_LOCK('meibo_sync')")->fetchColumn();
     }
 }
+
+
+// ---------- whole-database copy (used by the administrator and by the first-run import) ----------
+// settings and sessions are not copied: connection data stays where it is, logins are not moved.
+function db_copy_tables() {
+    return ['meta', 'people', 'staff', 'days', 'attendance', 'log', 'people_history', 'days_history',
+            'person_settings', 'person_absence', 'staff_days', 'users', 'feedback', 'tombstones'];
+}
+function db_insert_batch($db, $t, $cols, $rows) {
+    $ph = '(' . implode(',', array_fill(0, count($cols), '?')) . ')';
+    $sql = 'INSERT INTO `' . $t . '` (`' . implode('`,`', $cols) . '`) VALUES ' . implode(',', array_fill(0, count($rows), $ph));
+    $flat = [];
+    foreach ($rows as $r) { foreach ($r as $v) { $flat[] = $v; } }
+    $db->prepare($sql)->execute($flat);
+    return count($rows);
+}
+// copies every table from $src to $dst: the destination tables are replaced completely
+function db_copy_all($src, $dst) {
+    $counts = [];
+    $dst->beginTransaction();
+    foreach (db_copy_tables() as $t) {
+        $dst->exec('DELETE FROM `' . $t . '`');
+        $st = $src->query('SELECT * FROM `' . $t . '`');
+        $cols = null;
+        $batch = [];
+        $n = 0;
+        while ($r = $st->fetch(PDO::FETCH_ASSOC)) {
+            if ($cols === null) { $cols = array_keys($r); }
+            $batch[] = array_values($r);
+            if (count($batch) >= 200) { $n += db_insert_batch($dst, $t, $cols, $batch); $batch = []; }
+        }
+        if (count($batch) > 0) { $n += db_insert_batch($dst, $t, $cols, $batch); }
+        $counts[$t] = $n;
+    }
+    $dst->commit();
+    return $counts;
+}

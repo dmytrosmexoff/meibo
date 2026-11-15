@@ -44,6 +44,22 @@ try {
         out(['ok' => true, 'status' => 'pending', 'role' => 'user']);
     }
 
+    if ($a === 'import_sql') {
+        // first run only: a ready SQL dump (for example an export of another copy) can be loaded before the first account exists
+        if ((int)$db->query('SELECT COUNT(*) FROM users')->fetchColumn() > 0) { out(['ok' => false, 'msg' => 'Загрузка возможна только до регистрации первого аккаунта.'], 403); }
+        if (empty($_FILES['f']['tmp_name']) || !is_uploaded_file($_FILES['f']['tmp_name'])) { out(['ok' => false, 'msg' => 'Файл не получен. Допустимый размер — до 64 МБ.'], 400); }
+        $sql = file_get_contents($_FILES['f']['tmp_name']);
+        if ($sql === false || strlen($sql) < 20 || (stripos($sql, 'CREATE TABLE') === false && stripos($sql, 'INSERT INTO') === false)) { out(['ok' => false, 'msg' => 'Это не похоже на SQL-файл базы данных (.sql).'], 400); }
+        try {
+            @set_time_limit(300);
+            $db->exec($sql);
+        } catch (Throwable $e) {
+            out(['ok' => false, 'msg' => 'Не удалось загрузить файл: ' . $e->getMessage()], 400);
+        }
+        db_connect(); // makes sure that every table and column of this version exists
+        out(['ok' => true, 'msg' => 'База загружена.']);
+    }
+
     if ($a === 'login') {
         $name = trim((string)(isset($in['u']) ? $in['u'] : ''));
         $pass = (string)(isset($in['p']) ? $in['p'] : '');
@@ -323,6 +339,22 @@ try {
     case 'sync_tick':
         $res = sync_try($db, false, false);
         out(['ran' => !empty($res['ran'])]);
+
+    case 'db_copy':
+        if (!$isAdmin) { out(['error' => 'forbidden'], 403); }
+        $dir = (string)(isset($in['dir']) ? $in['dir'] : '');
+        if ($dir !== 'a2b' && $dir !== 'b2a') { out(['ok' => false, 'msg' => 'Неизвестное направление.'], 400); }
+        $s = settings_get($db);
+        if (empty($s['b_enabled'])) { out(['ok' => false, 'msg' => 'Подключённая база не настроена.']); }
+        try {
+            $B = db_open_b($db, 5);
+        } catch (Throwable $e) {
+            out(['ok' => false, 'msg' => 'Подключённая база недоступна: ' . $e->getMessage()]);
+        }
+        @set_time_limit(300);
+        $counts = ($dir === 'a2b') ? db_copy_all($db, $B) : db_copy_all($B, $db);
+        $total = array_sum($counts);
+        out(['ok' => true, 'msg' => 'Готово: скопировано строк — ' . $total . '. ' . ($dir === 'a2b' ? 'Встроенная → подключённая.' : 'Подключённая → встроенная.')]);
 
     case 'admin_link':
         if (!$isAdmin) { out(['error' => 'forbidden'], 403); }

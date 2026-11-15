@@ -63,6 +63,15 @@ button.p{background:#2f6fed;color:#fff;border-color:#2f6fed}.row{display:flex;ga
 .ft{position:relative;border-top:1.6pt solid #000;width:367.1mm;height:6mm;font-size:8.6pt;white-space:pre}.ft span{position:absolute;top:.8mm}
 .pn{position:absolute;left:367.1mm;top:0;width:41.6mm}.pn>div{position:absolute;left:0;width:100%;white-space:nowrap}.pn .lb{position:absolute;left:0;font-size:8pt}
 @page{size:A3 landscape;margin:5.6mm}
+@page formp{size:A4 landscape;margin:6mm}
+.fpage{page:formp;width:285mm;height:197mm;overflow:hidden;position:relative;break-after:page;page-break-after:always;background:#fff;color:#000;font-family:"Hiragino Sans","Yu Gothic",Meiryo,"Noto Sans CJK JP",sans-serif}
+.fpage:last-child{break-after:auto;page-break-after:auto}
+.fhd{display:flex;justify-content:space-between;align-items:center;font-size:13pt;height:8mm}
+.ft2{border-collapse:collapse;table-layout:fixed;width:285mm;font-size:8pt}
+.ft2 td,.ft2 th{border:.5pt solid #000;padding:0;text-align:center;font-weight:400;overflow:hidden;white-space:nowrap}
+.ft2 th.nm,.ft2 td.nm{text-align:left;padding-left:1.5mm;font-size:9pt}
+.ft2 th.vt{writing-mode:vertical-rl;text-orientation:upright;font-size:7.5pt;padding:1mm 0}
+.ft2 .ks{font-size:6pt}
 @media print{body{background:#fff}#app{display:block;height:auto}#ui{display:none}#pv{padding:0;overflow:visible}#wrap{width:auto!important;height:285mm!important;overflow:hidden!important;margin:0}#sheet{transform:scale(var(--ps,1))!important;transform-origin:0 0}#pv{overflow:hidden!important}}
 @media print{#stx,#auth,#cmw,#admw,.cmb{display:none!important}#qprint{display:none}body.pq #app{display:none}body.pq #qprint{display:block}.qpage{height:285mm;overflow:hidden;break-after:page;page-break-after:always}.qpage:last-child{break-after:auto;page-break-after:auto}}
 </style></head><body>
@@ -176,6 +185,26 @@ async function doPrint(){ensure();clearTimeout(timer);await flush();if(busy)awai
 let Q=[];try{Q=JSON.parse(localStorage.getItem('meibo_q')||'[]')}catch(e){}
 const qsave=()=>{try{localStorage.setItem('meibo_q',JSON.stringify(Q))}catch(e){}};
 const jdOf=dt=>{const[y,m,d]=dt.split('-').map(Number);return y+'年'+m+'月'+d+'日'};
+/* ---- A4 forms: 水分チェック表 and 排泄チェック表, one page per day, printed as a double-sided set ---- */
+function attendeesFor(dt){const d0=date;let dd=DB.days[dt];
+ if(!dd||!dd.present.length){date=dt;const m=pred();date=d0;dd={present:[],overnight:[],modes:{}};Object.keys(m).forEach(k=>{const p=DB.people.find(x=>String(x.id)===k);if(p){dd.present.push(p.id);dd.modes[p.id]=m[k].mode}})}
+ const md2=p=>modeOf(p,dd,dt),P=DB.people.filter(p=>vis(p,dt)&&dd.present.includes(p.id));
+ const reg=P.filter(p=>['day','night'].includes(md2(p))).sort((a,b)=>(md2(b)==='night')-(md2(a)==='night')||byOrd(a,b));
+ const vs=P.filter(p=>md2(p)==='visit').sort(byOrd);
+ return [...reg,...vs].map(p=>S(p,dt).name)}
+function formWaterHTML(dt,names){const rows=[...names,...Array(4).fill('')],[y,m,d]=dt.split('-').map(Number),wd=WD[pd(dt).getDay()];
+ const rh=Math.min(9,Math.max(5.5,176/(rows.length+1))),cells=n=>Array(n).fill('<td></td>').join('');
+ const hrs=(a,b)=>[...Array(b-a).keys()].map(i=>`<th>${i+a}</th>`).join('');
+ return `<div class="fpage"><div class="fhd"><b>水分チェック表</b><span>${y}年　${m}月　${d}日　${wd}曜日</span></div><table class="ft2"><colgroup><col style="width:44mm">${Array(13).fill('<col style="width:8mm">').join('')}<col style="width:24mm">${Array(11).fill('<col style="width:8mm">').join('')}<col style="width:25mm"></colgroup><tr style="height:7mm"><th class="nm">氏名</th>${hrs(0,13)}<th>小計</th>${hrs(13,24)}<th>合計</th></tr>${rows.map((n,i)=>`<tr style="height:${rh}mm"><td class="nm">${i+1}　${esc(n)}</td>${cells(13)}<td></td>${cells(11)}<td></td></tr>`).join('')}</table></div>`}
+function formExcrHTML(dt,names){const P=[...names,...Array(4).fill('')],N=P.length*2,w=((285-14)/N).toFixed(2),[y,m,d]=dt.split('-').map(Number),wd=WD[pd(dt).getDay()];
+ const hrs=[...Array(24).keys()].map(h=>`<tr style="height:5.7mm"><td class="nm" style="text-align:center">${h}</td>${Array(N).fill('<td></td>').join('')}</tr>`).join('');
+ return `<div class="fpage"><div class="fhd"><b>排泄チェック表</b><span>${y}年　${m}月　${d}日　${wd}曜日</span></div><table class="ft2"><colgroup><col style="width:14mm">${Array(N).fill(`<col style="width:${w}mm">`).join('')}</colgroup><tr style="height:30mm"><th></th>${P.map((n,i)=>`<th colspan="2" class="vt">${i+1}${n?' '+esc(n):''}</th>`).join('')}</tr><tr style="height:5mm"><th></th>${P.map(()=>'<th class="ks">K</th><th class="ks">H</th>').join('')}</tr>${hrs}<tr style="height:5.7mm"><td style="font-size:8pt">合計</td>${Array(N).fill('<td></td>').join('')}</tr></table></div>`}
+async function printForms(kind){const el=$('#fdays'),n=Math.max(1,Math.min(31,parseInt(el?el.value:'2',10)||2)),d0=date,parts=[];
+ for(let i=0;i<n;i++){const x=pd(d0);x.setDate(x.getDate()+i);const dt=dkey(x),names=attendeesFor(dt);parts.push(kind==='water'?formWaterHTML(dt,names):formExcrHTML(dt,names))}
+ const box=$('#qprint');box.innerHTML=parts.join('');document.body.classList.add('pq');
+ document.title=jdOf(d0)+(kind==='water'?'_水分チェック表':'_排泄チェック表');
+ try{window.print()}catch(e){}
+ setTimeout(()=>{document.body.classList.remove('pq');box.innerHTML='';document.title='利用者名簿'},60000)}
 async function printQueue(){const ds=[...Q].sort();if(!ds.length)return;
  if(typeof flush==='function'){clearTimeout(timer);await flush();if(busy)await new Promise(r=>setTimeout(r,800))}
  const box=$('#qprint'),keep=date;box.innerHTML='';box.style.cssText='display:block;position:absolute;left:-30000px;top:0;visibility:hidden';
@@ -186,10 +215,10 @@ async function printQueue(){const ds=[...Q].sort();if(!ds.length)return;
  setTimeout(()=>{if(!printed){document.body.classList.remove('pq');box.innerHTML='';document.title='利用者名簿';msg='この画面では印刷できません。ChromeまたはEdgeで直接開いてください。';ui()}},1200)}
 addEventListener('afterprint',()=>{document.body.classList.remove('pq');const b=$('#qprint');if(b)b.innerHTML=''});
 /* ---- accounts, comments for the developer, administrator ---- */
-let ME=null,authMode='login',authMsg='',ADM={users:[],comments:[],tab:'s',pending:0,arm:'',link:''};
+let FIRST=false,ME=null,authMode='login',authMsg='',ADM={users:[],comments:[],tab:'s',pending:0,arm:'',link:''};
 const AUTHERR={wrong:'ユーザー名またはパスワードが違います。',pending:'管理者の承認待ちです。承認されるとログインできます。',blocked:'このアカウントは利用できません。',exists:'このユーザー名は既に使われています。',weak:'パスワードは8文字以上にしてください。',name:'ユーザー名は2〜32文字で、空白は使えません。',locked:'試行回数が多すぎます。10分後にもう一度お試しください。'};
 function showAuth(){const a=$('#auth'),reg=authMode==='register';a.style.display='flex';$('#cmb').style.display='none';$('#admb2').style.display='none';$('#admw').style.display='none';$('#cmw').style.display='none';
- a.innerHTML=`<div class="box"><h3>利用者名簿</h3><p><input type="text" id="au" placeholder="ユーザー名" autocomplete="username"></p><p><input type="password" id="ap" placeholder="パスワード（8文字以上）" autocomplete="${reg?'new-password':'current-password'}"></p>${reg?'<p><input type="password" id="ap2" placeholder="パスワード（確認）" autocomplete="new-password"></p>':''}<p class="err">${esc(authMsg)}</p><p><button class="p" id="ago">${reg?'登録':'ログイン'}</button> <a href="#" id="asw">${reg?'ログインへ':'新規登録'}</a></p></div>`}
+ a.innerHTML=`<div class="box"><h3>利用者名簿</h3><p><input type="text" id="au" placeholder="ユーザー名" autocomplete="username"></p><p><input type="password" id="ap" placeholder="パスワード（8文字以上）" autocomplete="${reg?'new-password':'current-password'}"></p>${reg?'<p><input type="password" id="ap2" placeholder="パスワード（確認）" autocomplete="new-password"></p>':''}${(authMode==='register'&&FIRST)?'<p class="sm">Необязательно: загрузите готовый файл базы (.sql), например экспорт другой копии. Затем зарегистрируйтесь.</p><p><input type="file" id="imf" accept=".sql"> <button id="imb">Загрузить базу</button></p>':''}<p class="err">${esc(authMsg)}</p><p><button class="p" id="ago">${reg?'登録':'ログイン'}</button> <a href="#" id="asw">${reg?'ログインへ':'新規登録'}</a></p></div>`}
 async function authGo(){const u=$('#au').value.trim(),p=$('#ap').value,reg=authMode==='register';
  if(reg&&p!==$('#ap2').value){authMsg='パスワードが一致しません。';showAuth();return}
  try{const r=await fetch('api.php?a='+(reg?'register':'login'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({u,p})}).then(x=>x.json());
@@ -206,7 +235,7 @@ function showBtns(){$('#cmb').style.display=ME?'block':'none';$('#admb2').style.
 async function boot(){
  const cm=ME?null:cacheInit();
  let r=null;try{r=await fetch('api.php?a=me',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})}catch(e){}
- if(r&&r.status===401){wipeMem();try{const st=await fetch('api.php?a=status',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}).then(x=>x.json());if(st.users===0){authMode='register';authMsg='最初に登録したアカウントが管理者になります。'}}catch(e){}showAuth();return}
+ if(r&&r.status===401){wipeMem();try{const st=await fetch('api.php?a=status',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}).then(x=>x.json());FIRST=st.users===0;if(st.users===0){authMode='register';authMsg='最初に登録したアカウントが管理者になります。'}}catch(e){}showAuth();return}
  if(r&&r.status===503){let j={};try{j=await r.json()}catch(e){}if(j.error==='setup'){wipeMem();location.href='setup.php';return}r=null}
  if(!r||!r.ok){online=false;if(cm&&!ME)ME=cm;$('#auth').style.display='none';showBtns();ui();render();return}
  let j;try{j=await r.json()}catch(e){online=false;ui();render();return}
@@ -227,7 +256,7 @@ function dbTab(){const d=ADM.db;if(!d)return '<div class="mut">Загрузка�
  if(b.enabled){const s=b.stats;
   h+=`<div>${esc(b.host)}:${esc(b.port)} · база ${esc(b.name)} · логин ${esc(b.user)}</div><div class="${b.ok?'mut':'err'}">${b.ok?`Работает. MySQL ${esc(s.version)}<br>людей: ${s.people}, дней: ${s.days}, аккаунтов: ${s.users} · последнее изменение: ${fmtT(s.newest)}`:'Нет связи: '+esc(b.error||'')}</div>`;
   h+=`<div class="mut" style="margin-top:6px">Последняя синхронизация: ${d.last_sync_at?fmtT(d.last_sync_at*1000):'ещё не было'}${rp?` · в ручную базу: ${rp.to_b}, во встроенную: ${rp.to_a}, удалено: ${rp.deleted}, история: ${rp.history}`:''}</div>${d.last_error?`<div class="err">Ошибка последней синхронизации: ${esc(d.last_error)}</div>`:''}`;
-  h+=`<p><button class="p" id="b2sync">Синхронизировать сейчас</button> <button id="b2off">Отключить</button> <span id="b2msg" class="mut"></span></p>`}
+  h+=`<p><button class="p" id="b2sync">Синхронизировать сейчас</button> <button id="b2off">Отключить</button> <button id="cpAB">Встроенная → подключённая</button> <button id="cpBA">Подключённая → встроенная</button> <span id="b2msg" class="mut"></span></p>`}
  else h+=`<p class="mut">Не подключена. Введите данные второй базы MySQL (например, на другом сервере) и нажмите «Проверить подключение».</p><div class="eg" style="grid-template-columns:90px 1fr"><b>Хост</b><input type="text" id="b2h" value="localhost"><b>Порт</b><input type="text" id="b2p" value="3306"><b>Имя базы</b><input type="text" id="b2n" value="meibo"><b>Логин</b><input type="text" id="b2u"><b>Пароль</b><input type="password" id="b2w" autocomplete="off"></div><p><button id="b2test">Проверить подключение</button> <button class="p" id="b2save">Подключить и синхронизировать</button> <span id="b2msg" class="mut"></span></p>`;
  h+=`<p class="mut">Синхронизация идёт в обе стороны: запись, изменённая позже, копируется туда, где информация старее (люди, листы дней, список сотрудников, аккаунты, комментарии, история изменений). Автоматически каждые 2 минуты.</p>`;
  if(ADM.link)h+=`<p><a href="${esc(ADM.link)}" target="_blank" rel="noopener noreferrer">Открыть страницу просмотра таблиц (только чтение, свой пароль)</a></p>`;
@@ -323,6 +352,7 @@ function ui(){
  <div class="row">夜勤: ${inp('night',0,st.night[0])}${two('night')}</div>
  <div class="row">その他: <input type="text" data-a="sf" data-p="other" value="${esc(d.other)}" size="26"></div>
  <h4>印刷キュー（${Q.length} / 15）</h4><div class="row"><button id="qadd" ${Q.length>=15?'disabled':''}>キューに追加</button><button class="p" id="qpdf" ${Q.length?'':'disabled'}>まとめてPDF保存</button><button id="qclr" ${Q.length?'':'disabled'}>空にする</button></div><div>${Q.map(dt=>`<span class="tg">${dt.slice(5).replace('-','/')} <button class="sb" data-a="qd" data-i="${dt}">✕</button></span> `).join('')}</div>
+ <h4>フォームA4（水分・排泄）</h4><div class="row"><label>日数：<input type="number" id="fdays" min="1" max="31" value="2" style="width:60px"></label><button id="fw">水分チェック表</button><button id="fe">排泄チェック表</button></div><div class="mut">1ページ目＝選択日、2ページ目＝翌日、以降も同様。両面印刷で1枚のA4に2日分です。</div>
  <h4>ファイル</h4><div class="row"><button class="p" id="pdf">PDFを保存</button></div>`;
  $('#ui').innerHTML=h}
 const upd=s=>{save();render();if(s){ui();if(PAGE==='admin')admDraw()}},P_=id=>DB.people.find(x=>String(x.id)===id);
@@ -367,13 +397,19 @@ U_.addEventListener('click',e=>{if(e.target.id==='lgo'){e.preventDefault();logou
  else if(b.id==='qadd'){ensure();save();if(!Q.includes(date)&&Q.length<15){Q.push(date);Q.sort();qsave()}ui()}
  else if(b.id==='qclr'){Q=[];qsave();ui()}
  else if(b.id==='qpdf')printQueue()
+ else if(b.id==='fw')printForms('water')
+ else if(b.id==='fe')printForms('excr')
  else if(b.id==='pv1'||b.id==='nx'){const x=pd(date);x.setDate(x.getDate()+(b.id==='nx'?1:-1));date=x.getFullYear()+'-'+pad(x.getMonth()+1)+'-'+pad(x.getDate());upd(1)}
  else if(b.id==='pdf')doPrint()});
 function openStats(){location.href='admin.html'}
 $('#stx').addEventListener('click',e=>{if(e.target.id==='stc'||e.target.id==='stx')$('#stx').style.display='none'});
 $('#stx').addEventListener('change',e=>{if(e.target.id==='sm'){sm=e.target.value||null;openStats()}});
 let tap=[];
-$('#auth').addEventListener('click',e=>{if(e.target.id==='ago')authGo();if(e.target.id==='asw'){e.preventDefault();authMode=authMode==='login'?'register':'login';authMsg='';showAuth()}});
+async function importSql(){const f=$('#imf')&&$('#imf').files[0];if(!f){authMsg='Выберите файл .sql';showAuth();return}
+ const fd=new FormData();fd.append('f',f);
+ try{const r=await fetch('api.php?a=import_sql',{method:'POST',body:fd}).then(x=>x.json());authMsg=r.ok?'База загружена. Теперь зарегистрируйтесь.':(r.msg||'Ошибка загрузки')}catch(e){authMsg='Ошибка загрузки'}
+ showAuth()}
+$('#auth').addEventListener('click',e=>{if(e.target.id==='imb')importSql();if(e.target.id==='ago')authGo();if(e.target.id==='asw'){e.preventDefault();authMode=authMode==='login'?'register':'login';authMsg='';showAuth()}});
 $('#auth').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.tagName==='INPUT')authGo()});
 $('#admb2').addEventListener('click',()=>{location.href='admin.html'});
 $('#cmb').addEventListener('click',cmOpen);
@@ -387,6 +423,11 @@ $('#admw').addEventListener('click',async e=>{const t=e.target;
    if(t.id==='b2test'){o.textContent=r.msg;return}
    await admLoadDb();admDraw()}catch(e){o.textContent='Нет ответа от сервера'}return}
  if(t.id==='b2sync'){const o=$('#b2msg');o.textContent='Синхронизирую…';try{const r=await jp('db_sync',{});await admLoadDb();admDraw();const o2=$('#b2msg');if(o2)o2.textContent=r.ok?'Готово':(r.msg||'Ошибка')}catch(e){o.textContent='Нет ответа от сервера'}return}
+ if(t.id==='cpAB'||t.id==='cpBA'){const k=t.id==='cpAB'?'a2b':'b2a';
+  if(ADM.arm!==k){ADM.arm=k;t.textContent=k==='a2b'?'Точно? Перезаписать подключённую базу':'Точно? Перезаписать встроенную базу';return}
+  ADM.arm='';const o=$('#b2msg');if(o)o.textContent='Копирую… это может занять время';
+  try{const r=await jp('db_copy',{dir:k});const msg=r.msg||(r.ok?'Готово':'Ошибка');await admLoadDb();admDraw();const o2=$('#b2msg');if(o2)o2.textContent=msg}catch(e){const o2=$('#b2msg');if(o2)o2.textContent='Нет ответа от сервера'}
+  return}
  if(t.id==='b2off'){if(ADM.arm!=='b2off'){ADM.arm='b2off';t.textContent='Точно отключить?';return}ADM.arm='';try{await jp('db2_remove',{})}catch(e){}await admLoadDb();admDraw();return}
  if(t.dataset&&t.dataset.tab){ADM.tab=t.dataset.tab;ADM.arm='';if(ADM.tab==='d'){ADM.db=null;admDraw();await admLoadDb()}admDraw();return}
  if(t.dataset&&t.dataset.aup){const L=normOrd();moveP(t.dataset.aup,L.findIndex(p=>String(p.id)===t.dataset.aup)-1);return}
