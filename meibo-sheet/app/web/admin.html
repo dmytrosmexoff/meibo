@@ -2,6 +2,7 @@
 <html lang="ja" data-page="admin"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Администратор</title>
 <style>
+@font-face{font-family:"MeiboJP";src:url(meibo-jp.woff) format("woff");font-display:block}
 *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 body{margin:0;font:14px system-ui,"Hiragino Sans","Yu Gothic",Meiryo,sans-serif;background:#e9ebef;color:#1c1e21}
 #app{display:flex;height:100vh}#ui{width:390px;flex:none;overflow:auto;padding:12px;background:#fff;border-right:1px solid #ccd}
@@ -16,7 +17,7 @@ button.p{background:#2f6fed;color:#fff;border-color:#2f6fed}.row{display:flex;ga
 .tg{font-size:11px;background:#e6e9f7;padding:0 4px;border-radius:4px}.sb{padding:0 8px}#ui hr{border:0;border-top:1px dashed #bbb;margin:6px 0}
 .sx{border-collapse:collapse;font-size:12px;margin:6px 0}.sx td,.sx th{border:1px solid #ddd;padding:2px 6px;text-align:center}.sx td:first-child{text-align:left}#stb h4{margin:14px 0 4px}.bar{display:flex;align-items:center;gap:6px;font-size:12px}.bar span{width:64px}.bar i{height:9px;background:#8aa7f0;display:block}
 .pp{display:flex;gap:6px;align-items:center;padding:3px 0;flex-wrap:nowrap}.pp .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.md3{display:flex;gap:7px;white-space:nowrap}.ck{white-space:nowrap;display:inline-flex;align-items:center;gap:2px}
+.md3{display:flex;gap:7px;white-space:nowrap}.md3>*{width:64px;justify-content:center;box-sizing:border-box}.pp.hdr{font-size:12px;color:#445}.pp.hdr button{padding:2px 4px}.ck{white-space:nowrap;display:inline-flex;align-items:center;gap:2px}
 .vm{margin:0 0 4px 24px;font-size:13px;color:#445}.vm .ck{margin-right:9px}
 .eg{display:grid;grid-template-columns:60px repeat(3,1fr);gap:5px 6px;align-items:center;margin:8px 0}.eg b{font-weight:600}
 .g6{display:grid;grid-template-columns:repeat(3,1fr);height:var(--r)}
@@ -31,25 +32,25 @@ button.p{background:#2f6fed;color:#fff;border-color:#2f6fed}.row{display:flex;ga
 .cmb{position:fixed;left:12px;bottom:12px;z-index:10;opacity:.9}#admb2{left:118px}
 .adm #app,.adm .cmb{display:none!important}.adm #admw{display:block;position:static;background:#f4f5f7;min-height:100vh;z-index:auto;overflow:visible}.adm #admw .win{max-width:1100px;margin:0 auto;border-radius:0;min-height:100vh}
 #cmw,#admw{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:40;overflow:auto}#cmw .win,#admw .win{background:#fff;max-width:720px;margin:30px auto;padding:16px;border-radius:8px}#admw .win{max-width:900px}
-#sheet,.sheetp{width:408.7mm;position:relative;background:#fff;color:#000;font-family:"Hiragino Sans","Yu Gothic",Meiryo,"Noto Sans CJK JP",sans-serif;transform-origin:0 0;padding-bottom:2mm}
+#sheet,.sheetp{width:408.7mm;position:relative;background:#fff;color:#000;font-family:"MeiboJP","Hiragino Sans","Yu Gothic",Meiryo,"Noto Sans CJK JP",sans-serif;transform-origin:0 0;padding-bottom:2mm}
 .t{border-collapse:collapse;table-layout:fixed;width:367.1mm}
-.t td,.t th{border:.5pt solid #000;padding:0;text-align:center;position:relative;font-weight:400;line-height:1.1}
+.t td,.t th{border:.7pt solid #000;padding:0;text-align:center;position:relative;font-weight:400;line-height:1.1}
 .t th{background:#d1d1d1;height:11mm;font-size:9.5pt}.t tr{height:var(--r)}.t tr.z td{background:#dbdbdb}
 .t td{border-top-width:.9pt;border-bottom-width:.9pt}.t tr.sp td{border-top:1.6pt solid #000}.t tr.en td{border-bottom:1.6pt solid #000}
 .h13{font-size:11pt!important}.vt{writing-mode:vertical-rl;text-orientation:upright;font-size:9pt;letter-spacing:.3pt;line-height:1.05;display:inline-block}
 .cn{position:absolute;top:.3mm;font-size:5pt;font-weight:400}
-.bt,.bb{position:absolute;left:0;right:0}.bt{top:0;height:50%;font-size:8pt;border-bottom:.5pt solid #000;display:flex;align-items:center;justify-content:center}
-.bb{bottom:0;height:50%;display:flex;font-size:5pt}.bb i{flex:1;font-style:normal;display:flex;align-items:center;justify-content:center;border-left:.5pt solid #000}.bb i:first-child{flex:0 0 58%;border:0}
+.bt,.bb{position:absolute;left:0;right:0}.bt{top:0;height:50%;font-size:8pt;border-bottom:.7pt solid #000;display:flex;align-items:center;justify-content:center}
+.bb{bottom:0;height:50%;display:flex;font-size:5pt}.bb i{flex:1;font-style:normal;display:flex;align-items:center;justify-content:center;border-left:.7pt solid #000}.bb i:first-child{flex:0 0 58%;border:0}
 .n{text-align:left!important;padding-left:1.8mm!important;font-size:12pt;white-space:nowrap}.nm{font-size:11pt}.nm.v{font-size:9pt}.st{font-size:10pt}
 .ex{font-size:8pt;text-align:left!important;padding-left:4.2mm!important;white-space:nowrap}.ac{font-size:8pt;white-space:nowrap}
 .nt{text-align:left!important;padding:0 .8mm!important;font-size:9pt;overflow:hidden;white-space:pre-wrap}
 .ntw{height:var(--r);overflow:hidden;line-height:1.1;display:flex;align-items:center;white-space:pre-wrap}
 .v1{position:absolute;bottom:1mm;font-size:5.25pt;font-weight:400}
-.sub,.sub2{display:flex;height:var(--r)}.sub i,.sub2 i{flex:1;border-left:.5pt solid #000;display:flex;align-items:center;justify-content:center;position:relative}
+.sub,.sub2{display:flex;height:var(--r)}.sub i,.sub2 i{flex:1;border-left:.7pt solid #000;display:flex;align-items:center;justify-content:center;position:relative}
 .sub i:first-child,.sub2 i:first-child{border:0}.sub2 i:first-child{flex:0 0 58%}
-.ov{position:absolute;left:.55mm;right:.55mm;top:.175mm;bottom:.175mm;border:.5pt solid #000;border-radius:50%}
+.ov{position:absolute;left:.55mm;right:.55mm;top:.175mm;bottom:.175mm;border:.7pt solid #000;border-radius:50%}
 .ov:after{content:"";position:absolute;left:50%;top:50%;width:.5pt;height:62%;background:#000;transform:translate(-50%,-50%) rotate(27deg)}
-.dl{position:relative;z-index:1;width:6.7mm;height:6.7mm;border:.5pt solid #000;border-radius:50%;font-size:12pt;font-weight:400;display:flex;align-items:center;justify-content:center}
+.dl{position:relative;z-index:1;width:6.7mm;height:6.7mm;border:.7pt solid #000;border-radius:50%;font-size:12pt;font-weight:400;display:flex;align-items:center;justify-content:center}
 .md{text-align:left!important;white-space:nowrap;padding-left:.7mm!important}
 .pl{display:inline-block;height:5.3mm;line-height:5.3mm;padding:0 3pt;border-radius:50%;font-size:10pt;margin-right:.7mm;vertical-align:middle}.pl.sm{font-size:7.2pt}
 .pl.m{background:conic-gradient(#F28C8C 25%,transparent 0 50%,#F28C8C 0 75%,transparent 0) 0 0/.64mm .64mm}
@@ -57,13 +58,22 @@ button.p{background:#2f6fed;color:#fff;border-color:#2f6fed}.row{display:flex;ga
 .pl.e{background:conic-gradient(#3373F2 25%,transparent 0 50%,#3373F2 0 75%,transparent 0) 0 0/.64mm .64mm}
 .pl.b{background:conic-gradient(#1AAD52 25%,transparent 0 50%,#1AAD52 0 75%,transparent 0) 0 0/.64mm .64mm;margin-left:1mm}
 .gr{text-align:left!important;font-size:5.5pt;padding-left:1mm!important}.gr div{height:calc(var(--r)/2);display:flex;align-items:center}
-.cb{display:inline-block;width:2.1mm;height:2.1mm;border:.5pt solid #000;margin-left:.9mm}
-.bot{border:.5pt solid #000;border-bottom:0}.bot>div{display:flex;border-bottom:.5pt solid #000;position:relative}
-.lc{display:block;border-right:.5pt solid #000;padding:.3mm 1mm}
+.cb{display:inline-block;width:2.1mm;height:2.1mm;border:.7pt solid #000;margin-left:.9mm}
+.bot{border:.7pt solid #000;border-bottom:0}.bot>div{display:flex;border-bottom:.7pt solid #000;position:relative}
+.lc{display:block;border-right:.7pt solid #000;padding:.3mm 1mm}
 .ft{position:relative;border-top:1.6pt solid #000;width:367.1mm;height:6mm;font-size:8.6pt;white-space:pre}.ft span{position:absolute;top:.8mm}
 .pn{position:absolute;left:367.1mm;top:0;width:41.6mm}.pn>div{position:absolute;left:0;width:100%;white-space:nowrap}.pn .lb{position:absolute;left:0;font-size:8pt}
 @page{size:A3 landscape;margin:5.6mm}
-@media print{body{background:#fff}#app{display:block;height:auto}#ui{display:none}#pv{padding:0;overflow:visible}#wrap{width:auto!important;height:285mm!important;overflow:hidden!important;margin:0}#sheet{transform:scale(var(--ps,1))!important;transform-origin:0 0}#pv{overflow:hidden!important}}
+@page formp{size:A4 landscape;margin:6mm}
+.fpage{page:formp;width:285mm;height:197mm;overflow:hidden;position:relative;break-after:page;page-break-after:always;background:#fff;color:#000;font-family:"MeiboJP","Hiragino Sans","Yu Gothic",Meiryo,"Noto Sans CJK JP",sans-serif}
+.fpage:last-child{break-after:auto;page-break-after:auto}
+.fhd{display:flex;justify-content:space-between;align-items:center;font-size:13pt;height:8mm}
+.ft2{border-collapse:collapse;table-layout:fixed;width:285mm;font-size:8pt}
+.ft2 td,.ft2 th{border:.7pt solid #000;padding:0;text-align:center;font-weight:400;overflow:hidden;white-space:nowrap}
+.ft2 th.nm,.ft2 td.nm{text-align:left;padding-left:1.5mm;font-size:9pt}
+.ft2 th.vt{writing-mode:vertical-rl;text-orientation:upright;font-size:7.5pt;padding:1mm 0}
+.ft2 .ks{font-size:6pt}
+@media print{body{background:#fff}#app{display:block;height:auto}#ui{display:none}#pv{padding:0;overflow:visible}#wrap{width:auto!important;height:285mm!important;overflow:hidden!important;margin:0}#sheet{transform:none!important;zoom:var(--ps,1)!important}#pv{overflow:hidden!important}}
 @media print{#stx,#auth,#cmw,#admw,.cmb{display:none!important}#qprint{display:none}body.pq #app{display:none}body.pq #qprint{display:block}.qpage{height:285mm;overflow:hidden;break-after:page;page-break-after:always}.qpage:last-child{break-after:auto;page-break-after:auto}}
 </style></head><body class="adm">
 <div id="app"><aside id="ui"></aside><main id="pv"><div id="wrap"><div id="sheet"></div></div></main></div>
@@ -176,20 +186,44 @@ async function doPrint(){ensure();clearTimeout(timer);await flush();if(busy)awai
 let Q=[];try{Q=JSON.parse(localStorage.getItem('meibo_q')||'[]')}catch(e){}
 const qsave=()=>{try{localStorage.setItem('meibo_q',JSON.stringify(Q))}catch(e){}};
 const jdOf=dt=>{const[y,m,d]=dt.split('-').map(Number);return y+'年'+m+'月'+d+'日'};
+/* ---- A4 forms: 水分チェック表 and 排泄チェック表, one page per day, printed as a double-sided set ---- */
+function sortMode(m){const all=[...DB.people].sort(byOrd),L=all.filter(p=>vis(p)),on=L.filter(p=>modeOf(p,day(),date)===m),rest=all.filter(p=>!on.includes(p));
+ [...on,...rest].forEach((p,i)=>{p.ord=i+1});save();render();ui()}
+async function setSeq(){const n=parseInt($('#seqN').value,10);if(!(n>=1&&n<=4)){msg='番号は 1〜4 です';ui();return}
+ try{await flush();await jp('set_seq',{d:date,n});await reload();msg='';ui()}catch(e){msg='番号を保存できませんでした';ui()}}
+function attendeesFor(dt){const d0=date;let dd=DB.days[dt];
+ if(!dd||!dd.present.length){date=dt;const m=pred();date=d0;dd={present:[],overnight:[],modes:{}};Object.keys(m).forEach(k=>{const p=DB.people.find(x=>String(x.id)===k);if(p){dd.present.push(p.id);dd.modes[p.id]=m[k].mode}})}
+ const md2=p=>modeOf(p,dd,dt),P=DB.people.filter(p=>vis(p,dt)&&dd.present.includes(p.id));
+ const reg=P.filter(p=>['day','night'].includes(md2(p))).sort((a,b)=>(md2(b)==='night')-(md2(a)==='night')||byOrd(a,b));
+ const vs=P.filter(p=>md2(p)==='visit').sort(byOrd);
+ return [...reg,...vs].map(p=>S(p,dt).name)}
+function formWaterHTML(dt,names){const rows=[...names,...Array(4).fill('')],[y,m,d]=dt.split('-').map(Number),wd=WD[pd(dt).getDay()];
+ const rh=Math.min(9,Math.max(5.5,176/(rows.length+1))),cells=n=>Array(n).fill('<td></td>').join('');
+ const hrs=(a,b)=>[...Array(b-a).keys()].map(i=>`<th>${i+a}</th>`).join('');
+ return `<div class="fpage"><div class="fhd"><b>水分チェック表</b><span>${y}年　${m}月　${d}日　${wd}曜日</span></div><table class="ft2"><colgroup><col style="width:44mm">${Array(13).fill('<col style="width:8mm">').join('')}<col style="width:24mm">${Array(11).fill('<col style="width:8mm">').join('')}<col style="width:25mm"></colgroup><tr style="height:7mm"><th class="nm">氏名</th>${hrs(0,13)}<th>小計</th>${hrs(13,24)}<th>合計</th></tr>${rows.map((n,i)=>`<tr style="height:${rh}mm"><td class="nm">${i+1}　${esc(n)}</td>${cells(13)}<td></td>${cells(11)}<td></td></tr>`).join('')}</table></div>`}
+function formExcrHTML(dt,names){const P=[...names,...Array(4).fill('')],N=P.length*2,w=((285-14)/N).toFixed(2),[y,m,d]=dt.split('-').map(Number),wd=WD[pd(dt).getDay()];
+ const hrs=[...Array(24).keys()].map(h=>`<tr style="height:5.7mm"><td class="nm" style="text-align:center">${h}</td>${Array(N).fill('<td></td>').join('')}</tr>`).join('');
+ return `<div class="fpage"><div class="fhd"><b>排泄チェック表</b><span>${y}年　${m}月　${d}日　${wd}曜日</span></div><table class="ft2"><colgroup><col style="width:14mm">${Array(N).fill(`<col style="width:${w}mm">`).join('')}</colgroup><tr style="height:30mm"><th></th>${P.map((n,i)=>`<th colspan="2" class="vt">${i+1}${n?' '+esc(n):''}</th>`).join('')}</tr><tr style="height:5mm"><th></th>${P.map(()=>'<th class="ks">K</th><th class="ks">H</th>').join('')}</tr>${hrs}<tr style="height:5.7mm"><td style="font-size:8pt">合計</td>${Array(N).fill('<td></td>').join('')}</tr></table></div>`}
+async function printForms(kind){const el=$('#fdays'),n=Math.max(1,Math.min(31,parseInt(el?el.value:'2',10)||2)),d0=date,parts=[];
+ for(let i=0;i<n;i++){const x=pd(d0);x.setDate(x.getDate()+i);const dt=dkey(x),names=attendeesFor(dt);parts.push(kind==='water'?formWaterHTML(dt,names):formExcrHTML(dt,names))}
+ const box=$('#qprint');box.innerHTML=parts.join('');document.body.classList.add('pq');
+ document.title=jdOf(d0)+(kind==='water'?'_水分チェック表':'_排泄チェック表');
+ try{window.print()}catch(e){}
+ setTimeout(()=>{document.body.classList.remove('pq');box.innerHTML='';document.title='利用者名簿'},60000)}
 async function printQueue(){const ds=[...Q].sort();if(!ds.length)return;
  if(typeof flush==='function'){clearTimeout(timer);await flush();if(busy)await new Promise(r=>setTimeout(r,800))}
  const box=$('#qprint'),keep=date;box.innerHTML='';box.style.cssText='display:block;position:absolute;left:-30000px;top:0;visibility:hidden';
- ds.forEach(dt=>{date=dt;const o=sheetInner(),pg=document.createElement('div');pg.className='qpage';pg.innerHTML='<div class="sheetp" style="--r:'+o.r+'mm">'+o.html+'</div>';box.appendChild(pg);place(pg,o);const sp_=pg.firstChild||{style:{},offsetHeight:0},k_=Math.min(1,284/Math.max(sp_.offsetHeight*25.4/96,o.pb));sp_.style.transform='scale('+k_+')';sp_.style.transformOrigin='0 0'});
+ ds.forEach(dt=>{date=dt;const o=sheetInner(),pg=document.createElement('div');pg.className='qpage';pg.innerHTML='<div class="sheetp" style="--r:'+o.r+'mm">'+o.html+'</div>';box.appendChild(pg);place(pg,o);const sp_=pg.firstChild||{style:{},offsetHeight:0},k_=Math.min(1,284/Math.max(sp_.offsetHeight*25.4/96,o.pb));sp_.style.zoom=String(k_)});
  date=keep;box.style.cssText='';document.body.classList.add('pq');printed=false;
  document.title=ds.length>1?jdOf(ds[0])+'〜'+jdOf(ds[ds.length-1])+'_利用者名簿':jdOf(ds[0])+'_利用者名簿';
  try{window.print()}catch(e){}
  setTimeout(()=>{if(!printed){document.body.classList.remove('pq');box.innerHTML='';document.title='利用者名簿';msg='この画面では印刷できません。ChromeまたはEdgeで直接開いてください。';ui()}},1200)}
 addEventListener('afterprint',()=>{document.body.classList.remove('pq');const b=$('#qprint');if(b)b.innerHTML=''});
 /* ---- accounts, comments for the developer, administrator ---- */
-let ME=null,authMode='login',authMsg='',ADM={users:[],comments:[],tab:'s',pending:0,arm:'',link:''};
+let FIRST=false,ME=null,authMode='login',authMsg='',ADM={users:[],comments:[],tab:'s',pending:0,arm:'',link:''};
 const AUTHERR={wrong:'ユーザー名またはパスワードが違います。',pending:'管理者の承認待ちです。承認されるとログインできます。',blocked:'このアカウントは利用できません。',exists:'このユーザー名は既に使われています。',weak:'パスワードは8文字以上にしてください。',name:'ユーザー名は2〜32文字で、空白は使えません。',locked:'試行回数が多すぎます。10分後にもう一度お試しください。'};
 function showAuth(){const a=$('#auth'),reg=authMode==='register';a.style.display='flex';$('#cmb').style.display='none';$('#admb2').style.display='none';$('#admw').style.display='none';$('#cmw').style.display='none';
- a.innerHTML=`<div class="box"><h3>利用者名簿</h3><p><input type="text" id="au" placeholder="ユーザー名" autocomplete="username"></p><p><input type="password" id="ap" placeholder="パスワード（8文字以上）" autocomplete="${reg?'new-password':'current-password'}"></p>${reg?'<p><input type="password" id="ap2" placeholder="パスワード（確認）" autocomplete="new-password"></p>':''}<p class="err">${esc(authMsg)}</p><p><button class="p" id="ago">${reg?'登録':'ログイン'}</button> <a href="#" id="asw">${reg?'ログインへ':'新規登録'}</a></p></div>`}
+ a.innerHTML=`<div class="box"><h3>利用者名簿</h3><p><input type="text" id="au" placeholder="ユーザー名" autocomplete="username"></p><p><input type="password" id="ap" placeholder="パスワード（8文字以上）" autocomplete="${reg?'new-password':'current-password'}"></p>${reg?'<p><input type="password" id="ap2" placeholder="パスワード（確認）" autocomplete="new-password"></p>':''}${(authMode==='register'&&FIRST)?'<p class="sm">Необязательно: загрузите готовый файл базы (.sql), например экспорт другой копии. Затем зарегистрируйтесь.</p><p><input type="file" id="imf" accept=".sql"> <button id="imb">Загрузить базу</button></p>':''}<p class="err">${esc(authMsg)}</p><p><button class="p" id="ago">${reg?'登録':'ログイン'}</button> <a href="#" id="asw">${reg?'ログインへ':'新規登録'}</a></p></div>`}
 async function authGo(){const u=$('#au').value.trim(),p=$('#ap').value,reg=authMode==='register';
  if(reg&&p!==$('#ap2').value){authMsg='パスワードが一致しません。';showAuth();return}
  try{const r=await fetch('api.php?a='+(reg?'register':'login'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({u,p})}).then(x=>x.json());
@@ -206,7 +240,7 @@ function showBtns(){$('#cmb').style.display=ME?'block':'none';$('#admb2').style.
 async function boot(){
  const cm=ME?null:cacheInit();
  let r=null;try{r=await fetch('api.php?a=me',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})}catch(e){}
- if(r&&r.status===401){wipeMem();try{const st=await fetch('api.php?a=status',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}).then(x=>x.json());if(st.users===0){authMode='register';authMsg='最初に登録したアカウントが管理者になります。'}}catch(e){}showAuth();return}
+ if(r&&r.status===401){wipeMem();try{const st=await fetch('api.php?a=status',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}).then(x=>x.json());FIRST=st.users===0;if(st.users===0){authMode='register';authMsg='最初に登録したアカウントが管理者になります。'}}catch(e){}showAuth();return}
  if(r&&r.status===503){let j={};try{j=await r.json()}catch(e){}if(j.error==='setup'){wipeMem();location.href='setup.php';return}r=null}
  if(!r||!r.ok){online=false;if(cm&&!ME)ME=cm;$('#auth').style.display='none';showBtns();ui();render();return}
  let j;try{j=await r.json()}catch(e){online=false;ui();render();return}
@@ -227,7 +261,7 @@ function dbTab(){const d=ADM.db;if(!d)return '<div class="mut">Загрузка�
  if(b.enabled){const s=b.stats;
   h+=`<div>${esc(b.host)}:${esc(b.port)} · база ${esc(b.name)} · логин ${esc(b.user)}</div><div class="${b.ok?'mut':'err'}">${b.ok?`Работает. MySQL ${esc(s.version)}<br>людей: ${s.people}, дней: ${s.days}, аккаунтов: ${s.users} · последнее изменение: ${fmtT(s.newest)}`:'Нет связи: '+esc(b.error||'')}</div>`;
   h+=`<div class="mut" style="margin-top:6px">Последняя синхронизация: ${d.last_sync_at?fmtT(d.last_sync_at*1000):'ещё не было'}${rp?` · в ручную базу: ${rp.to_b}, во встроенную: ${rp.to_a}, удалено: ${rp.deleted}, история: ${rp.history}`:''}</div>${d.last_error?`<div class="err">Ошибка последней синхронизации: ${esc(d.last_error)}</div>`:''}`;
-  h+=`<p><button class="p" id="b2sync">Синхронизировать сейчас</button> <button id="b2off">Отключить</button> <span id="b2msg" class="mut"></span></p>`}
+  h+=`<p><button class="p" id="b2sync">Синхронизировать сейчас</button> <button id="b2off">Отключить</button> <button id="cpAB">Встроенная → подключённая</button> <button id="cpBA">Подключённая → встроенная</button> <span id="b2msg" class="mut"></span></p>`}
  else h+=`<p class="mut">Не подключена. Введите данные второй базы MySQL (например, на другом сервере) и нажмите «Проверить подключение».</p><div class="eg" style="grid-template-columns:90px 1fr"><b>Хост</b><input type="text" id="b2h" value="localhost"><b>Порт</b><input type="text" id="b2p" value="3306"><b>Имя базы</b><input type="text" id="b2n" value="meibo"><b>Логин</b><input type="text" id="b2u"><b>Пароль</b><input type="password" id="b2w" autocomplete="off"></div><p><button id="b2test">Проверить подключение</button> <button class="p" id="b2save">Подключить и синхронизировать</button> <span id="b2msg" class="mut"></span></p>`;
  h+=`<p class="mut">Синхронизация идёт в обе стороны: запись, изменённая позже, копируется туда, где информация старее (люди, листы дней, список сотрудников, аккаунты, комментарии, история изменений). Автоматически каждые 2 минуты.</p>`;
  if(ADM.link)h+=`<p><a href="${esc(ADM.link)}" target="_blank" rel="noopener noreferrer">Открыть страницу просмотра таблиц (только чтение, свой пароль)</a></p>`;
@@ -257,7 +291,7 @@ function sheetInner(){
  const reg=P.filter(p=>['day','night'].includes(md(p))).sort((a,b)=>ov(b)-ov(a)||byOrd(a,b)),vs=P.filter(p=>md(p)==='visit').sort(byOrd);
  const bl1=reg.length>16?3:5,N=reg.length+vs.length+bl1+2,AV=264,BF=[9.2,7.1,8.5,7.8],BM=[6,4.5,8.5,4.5],sm_=a=>a.reduce((x,y)=>x+y,0);let r=7.76,bh=BF.slice();
  if(N*r+sm_(BF)>AV){const room=AV-N*r;if(room>=sm_(BM)){const kk=(room-sm_(BM))/(sm_(BF)-sm_(BM));bh=BF.map((v,i)=>BM[i]+(v-BM[i])*kk)}else{bh=BM.slice();r=Math.max(5.2,(AV-sm_(BM))/N)}}
- const hasRin=[...reg,...vs].some(p=>S(p).meds&&S(p).meds.abx),U2=U.slice();U2[13]=hasRin?90:24;const f=(TW-r)/U2.reduce((a,b)=>a+b,0),W=U2.map(u=>u?u*f:r);
+ const hasRin=[...reg,...vs].some(p=>S(p).meds&&S(p).meds.abx),U2=U.slice();U2[13]=hasRin?90:24;{const L=Math.max(0,...[...reg,...vs].map(p=>(S(p).note||'').length));U2[8]=Math.min(440,Math.max(170,60+L*14));}const f=(TW-r)/U2.reduce((a,b)=>a+b,0),W=U2.map(u=>u?u*f:r);
  const X=[0];W.forEach(w=>X.push(X[X.length-1]+w));
  const cnt=[0,0,0];[...reg,...vs].forEach(p=>['b','l','d'].forEach((k,j)=>{if(mealsOf(p,md(p),d,date)[k])cnt[j]++}));
  const nd=reg.filter(p=>md(p)==='day').length,nn=reg.filter(p=>md(p)==='night').length;
@@ -283,7 +317,7 @@ function sheetInner(){
  const top=i=>`top:calc(11mm + ${i}*var(--r));height:var(--r);line-height:var(--r)`;
  const pr=(i,lab,t,tg)=>`<div style="${top(i)}">${lab?`<span class="lb">${lab}</span>`:''}<span style="position:absolute;left:${lab?9.2:8.5}mm;font-size:${fs(t||'',tg)}pt">${esc(t||'')}</span></div>`;
  let pn=`<div style="top:0;height:11mm;line-height:11mm;left:9.2mm;width:auto;font-size:22pt">${dg}</div>`+pr(0,'明',dn[0],22)+pr(1,'',dn[1],22)+pr(2,'日勤','',16);
- const dyn=st.day.filter(Boolean);dyn.forEach((t,j)=>pn+=pr(3+j,'',stxt(t),16));const n=dyn.length;
+ const dyn=st.day.filter(Boolean);dyn.forEach((t,j)=>pn+=pr(3+j,'',stxt(t),16));const n=dyn.length+2;
  pn+=pr(3+n,'夜勤',st.night[0],22)+pr(4+n,'',st.night[1],22)+`<div style="${top(6+n)}"><span class="lb" style="font-size:9pt">アクト</span></div>`;
  ['①朝レク','②体操','③台所作業','④洗濯物','⑤午後レク','⑥食器拭き','⑦リハビリ'].forEach((t,j)=>pn+=`<div style="${top(7+n+j)}"><span style="position:absolute;left:.7mm;font-size:10pt">${t}</span></div>`);
  const [y,m,dd]=date.split('-').map(Number),wd=WD[pd(date).getDay()],lw=`width:${X[4]-X[2]}mm`;
@@ -312,7 +346,8 @@ function ui(){
  const two=q=>SD[q].length>1?inp(q,1,SD[q][1])+`<button class="sb" data-a="rm" data-p="${q}">✕</button>`:`<button class="sb" data-a="ad" data-p="${q}" title="2人目を追加">+</button>`;
  let h=(msg?'<div class="warn">'+msg+'</div>':'')+(online?'':'<div class="warn">サーバーに接続できません。変更はまだ保存されていません。接続が戻ると自動で保存されます。</div>')+`<h3>利用者名簿</h3><div class="mut">${ME?esc(ME.username)+' · <a href="#" id="lgo">ログアウト</a>':''}</div>
  <div class="row"><input type="date" id="dt" value="${date}"><button id="pv1">←</button><button id="nx">→</button><b>（${WD[pd(date).getDay()]}）</b></div>
- <div style="margin-top:8px">${g('regular').map(person).join('')}${g('regular').length&&g('visit').length?'<hr>':''}${g('visit').map(person).join('')}</div>
+ <div class="row"><span>番号：</span><input type="number" id="seqN" min="1" max="4" value="${day().seq||(DB.counter%4)+1}" style="width:56px"><button id="seqS">設定</button></div>
+ <div style="margin-top:8px"><div class="pp hdr"><span class="nm"></span><span class="md3"><button data-sortm="day" title="наверх: 通い">▲ 通い</button><button data-sortm="night" title="наверх: 泊まり">▲ 泊まり</button><button data-sortm="visit" title="наверх: 訪問">▲ 訪問</button></span></div>${P.slice().sort(byOrd).map(person).join('')}</div>
  ${(()=>{const hid=DB.people.filter(p=>p.v[0].from<=date&&off(p));return hid.length?`<details ${hidOpen?'open':''} ontoggle="hidOpen=this.open"><summary>欠席（${hid.length}）</summary>${hid.map(p=>`<div class="pp"><span class="nm">${esc(S(p).name)}</span><button data-a="sh" data-id="${p.id}">戻す</button><button data-a="pd" data-id="${p.id}">${armDel===p.id?'本当に削除？もう一度押してください':'完全に削除'}</button></div>`).join('')}</details>`:''})()}
  <div class="row"><button id="pred">いつも通りに設定</button><span class="mut">${Object.keys(PR).length?'★ いつもこの曜日に来る人':'同じ曜日のデータはまだありません'}</span></div>
  <div class="row" style="margin-top:8px"><input type="text" id="np" placeholder="新しい名前" size="16"><select id="nk"><option value="regular">通い/泊まり</option><option value="visit">訪問</option></select><button id="add">＋ 追加</button></div>
@@ -323,6 +358,7 @@ function ui(){
  <div class="row">夜勤: ${inp('night',0,st.night[0])}${two('night')}</div>
  <div class="row">その他: <input type="text" data-a="sf" data-p="other" value="${esc(d.other)}" size="26"></div>
  <h4>印刷キュー（${Q.length} / 15）</h4><div class="row"><button id="qadd" ${Q.length>=15?'disabled':''}>キューに追加</button><button class="p" id="qpdf" ${Q.length?'':'disabled'}>まとめてPDF保存</button><button id="qclr" ${Q.length?'':'disabled'}>空にする</button></div><div>${Q.map(dt=>`<span class="tg">${dt.slice(5).replace('-','/')} <button class="sb" data-a="qd" data-i="${dt}">✕</button></span> `).join('')}</div>
+ <h4>フォームA4（水分・排泄）</h4><div class="row"><label>日数：<input type="number" id="fdays" min="1" max="31" value="2" style="width:60px"></label><button id="fw">水分チェック表</button><button id="fe">排泄チェック表</button></div><div class="mut">1ページ目＝選択日、2ページ目＝翌日、以降も同様。両面印刷で1枚のA4に2日分です。</div>
  <h4>ファイル</h4><div class="row"><button class="p" id="pdf">PDFを保存</button></div>`;
  $('#ui').innerHTML=h}
 const upd=s=>{save();render();if(s){ui();if(PAGE==='admin')admDraw()}},P_=id=>DB.people.find(x=>String(x.id)===id);
@@ -349,7 +385,7 @@ on2('change',e=>{const t=e.target,a=t.dataset.a,p=P_(t.dataset.id);
  else if(a==='f'){const k=t.dataset.k,v=k==='delivery'?(t.value||null):t.value;if(old!==t.value)log('person',p.id,k,old,v);upd(k==='kind'||(PAGE==='admin'&&k==='name')?1:0)}
  else if(a==='sf'){const q=t.dataset.p;if(old!==t.value)log('day',date,q==='other'?q:'staff.'+q,old,t.value);upd(q==='day'&&t.dataset.f==='name'?1:0)}});
 U_.addEventListener('click',e=>{if(e.target.id==='lgo'){e.preventDefault();logout();return}if(e.target.closest('h3')){const n=Date.now();tap=tap.filter(x=>n-x<4000);tap.push(n);if(tap.length>=7&&ME&&ME.role==='admin'){tap=[];openStats()}return}
- const b=e.target.closest('button');if(!b)return;const a=b.dataset.a,p=P_(b.dataset.id);if(a!=='pd')armDel=null;
+ const b=e.target.closest('button');if(!b)return;if(b.dataset&&b.dataset.sortm){sortMode(b.dataset.sortm);return}const a=b.dataset.a,p=P_(b.dataset.id);if(a!=='pd')armDel=null;
  if(a==='qd'){Q=Q.filter(x=>x!==b.dataset.i);qsave();ui()}
  else if(a==='ed'){if(open.has(p.id))open.clear();else{open.clear();open.add(p.id)}ui()}
  else if(a==='mv'){const c=S(p),k=c.kind==='regular'?'visit':'regular',pt={kind:k};if(k==='visit')pt.meals={};else if(!(c.meals.b||c.meals.l||c.meals.d))pt.meals={b:1,l:1,d:1};setS(p,pt);if(k==='visit'&&day().overnight.includes(p.id))setDay('overnight',day().overnight.filter(x=>x!==p.id));upd(1)}
@@ -367,13 +403,20 @@ U_.addEventListener('click',e=>{if(e.target.id==='lgo'){e.preventDefault();logou
  else if(b.id==='qadd'){ensure();save();if(!Q.includes(date)&&Q.length<15){Q.push(date);Q.sort();qsave()}ui()}
  else if(b.id==='qclr'){Q=[];qsave();ui()}
  else if(b.id==='qpdf')printQueue()
+ else if(b.id==='fw')printForms('water')
+ else if(b.id==='seqS')setSeq()
+ else if(b.id==='fe')printForms('excr')
  else if(b.id==='pv1'||b.id==='nx'){const x=pd(date);x.setDate(x.getDate()+(b.id==='nx'?1:-1));date=x.getFullYear()+'-'+pad(x.getMonth()+1)+'-'+pad(x.getDate());upd(1)}
  else if(b.id==='pdf')doPrint()});
 function openStats(){location.href='admin.html'}
 $('#stx').addEventListener('click',e=>{if(e.target.id==='stc'||e.target.id==='stx')$('#stx').style.display='none'});
 $('#stx').addEventListener('change',e=>{if(e.target.id==='sm'){sm=e.target.value||null;openStats()}});
 let tap=[];
-$('#auth').addEventListener('click',e=>{if(e.target.id==='ago')authGo();if(e.target.id==='asw'){e.preventDefault();authMode=authMode==='login'?'register':'login';authMsg='';showAuth()}});
+async function importSql(){const f=$('#imf')&&$('#imf').files[0];if(!f){authMsg='Выберите файл .sql';showAuth();return}
+ const fd=new FormData();fd.append('f',f);
+ try{const r=await fetch('api.php?a=import_sql',{method:'POST',body:fd}).then(x=>x.json());authMsg=r.ok?'База загружена. Теперь зарегистрируйтесь.':(r.msg||'Ошибка загрузки')}catch(e){authMsg='Ошибка загрузки'}
+ showAuth()}
+$('#auth').addEventListener('click',e=>{if(e.target.id==='imb')importSql();if(e.target.id==='ago')authGo();if(e.target.id==='asw'){e.preventDefault();authMode=authMode==='login'?'register':'login';authMsg='';showAuth()}});
 $('#auth').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.tagName==='INPUT')authGo()});
 $('#admb2').addEventListener('click',()=>{location.href='admin.html'});
 $('#cmb').addEventListener('click',cmOpen);
@@ -387,6 +430,11 @@ $('#admw').addEventListener('click',async e=>{const t=e.target;
    if(t.id==='b2test'){o.textContent=r.msg;return}
    await admLoadDb();admDraw()}catch(e){o.textContent='Нет ответа от сервера'}return}
  if(t.id==='b2sync'){const o=$('#b2msg');o.textContent='Синхронизирую…';try{const r=await jp('db_sync',{});await admLoadDb();admDraw();const o2=$('#b2msg');if(o2)o2.textContent=r.ok?'Готово':(r.msg||'Ошибка')}catch(e){o.textContent='Нет ответа от сервера'}return}
+ if(t.id==='cpAB'||t.id==='cpBA'){const k=t.id==='cpAB'?'a2b':'b2a';
+  if(ADM.arm!==k){ADM.arm=k;t.textContent=k==='a2b'?'Точно? Перезаписать подключённую базу':'Точно? Перезаписать встроенную базу';return}
+  ADM.arm='';const o=$('#b2msg');if(o)o.textContent='Копирую… это может занять время';
+  try{const r=await jp('db_copy',{dir:k});const msg=r.msg||(r.ok?'Готово':'Ошибка');await admLoadDb();admDraw();const o2=$('#b2msg');if(o2)o2.textContent=msg}catch(e){const o2=$('#b2msg');if(o2)o2.textContent='Нет ответа от сервера'}
+  return}
  if(t.id==='b2off'){if(ADM.arm!=='b2off'){ADM.arm='b2off';t.textContent='Точно отключить?';return}ADM.arm='';try{await jp('db2_remove',{})}catch(e){}await admLoadDb();admDraw();return}
  if(t.dataset&&t.dataset.tab){ADM.tab=t.dataset.tab;ADM.arm='';if(ADM.tab==='d'){ADM.db=null;admDraw();await admLoadDb()}admDraw();return}
  if(t.dataset&&t.dataset.aup){const L=normOrd();moveP(t.dataset.aup,L.findIndex(p=>String(p.id)===t.dataset.aup)-1);return}

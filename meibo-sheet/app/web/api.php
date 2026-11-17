@@ -356,6 +356,24 @@ try {
         $total = array_sum($counts);
         out(['ok' => true, 'msg' => 'Готово: скопировано строк — ' . $total . '. ' . ($dir === 'a2b' ? 'Встроенная → подключённая.' : 'Подключённая → встроенная.')]);
 
+    case 'set_seq':
+        $d = (string)(isset($in['d']) ? $in['d'] : '');
+        $n = (int)(isset($in['n']) ? $in['n'] : 0);
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $d) || $n < 1 || $n > 4) { out(['ok' => false, 'msg' => 'bad'], 400); }
+        $db->beginTransaction();
+        $st = $db->prepare('SELECT d FROM days WHERE d = ? FOR UPDATE');
+        $st->execute([$d]);
+        if ($st->fetch() !== false) {
+            // the sheet exists: its number becomes n, the next new sheet continues from n
+            $db->prepare('UPDATE days SET seq = ?, rev = rev + 1, upd = ? WHERE d = ?')->execute([$n, now_ms(), $d]);
+            meta_put($db, 'counter', $n);
+        } else {
+            // the sheet is not created yet: its first save takes the number n
+            meta_put($db, 'counter', $n - 1);
+        }
+        $db->commit();
+        out(['ok' => true]);
+
     case 'admin_link':
         if (!$isAdmin) { out(['error' => 'forbidden'], 403); }
         out(['url' => 'kanri.php?k=' . admin_key()]);
