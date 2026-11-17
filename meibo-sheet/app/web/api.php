@@ -52,6 +52,10 @@ try {
         if ($sql === false || strlen($sql) < 20 || (stripos($sql, 'CREATE TABLE') === false && stripos($sql, 'INSERT INTO') === false)) { out(['ok' => false, 'msg' => 'Это не похоже на SQL-файл базы данных (.sql).'], 400); }
         try {
             @set_time_limit(300);
+            // while the dump is being loaded, other requests must not re-create the empty tables
+            $lock = sys_get_temp_dir() . '/meibo_import.lock';
+            file_put_contents($lock, (string)time());
+            sleep(2);
             // the application creates its empty tables at start-up; the dump brings its own tables,
             // so the empty ones are removed first (this is allowed only while there are no accounts)
             $db->exec('SET FOREIGN_KEY_CHECKS=0');
@@ -60,7 +64,9 @@ try {
             }
             $db->exec($sql);
             $db->exec('SET FOREIGN_KEY_CHECKS=1');
+            @unlink($lock);
         } catch (Throwable $e) {
+            @unlink($lock);
             out(['ok' => false, 'msg' => 'Не удалось загрузить файл: ' . $e->getMessage()], 400);
         }
         db_connect(); // makes sure that every table and column of this version exists

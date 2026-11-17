@@ -35,6 +35,9 @@ function db_open($host, $port, $name, $user, $pass, $timeout = 5) {
         $db = new PDO($dsn, $user, $pass, $opt);
     }
     $db->exec("SET time_zone = '" . (getenv('MEIBO_TZ') ?: '+09:00') . "'");
+    // a dump is being loaded right now: do not touch the schema until it is finished
+    $lockf = sys_get_temp_dir() . '/meibo_import.lock';
+    if (is_file($lockf) && time() - (int)@filemtime($lockf) < 900) { return $db; }
     $t = 'ENGINE=InnoDB DEFAULT CHARSET=utf8mb4';
     $db->exec("CREATE TABLE IF NOT EXISTS meta (k VARCHAR(32) NOT NULL PRIMARY KEY, v BIGINT NOT NULL) $t");
     $db->exec("CREATE TABLE IF NOT EXISTS people (id VARCHAR(40) NOT NULL PRIMARY KEY, data JSON NOT NULL, rev INT NOT NULL DEFAULT 1, upd BIGINT NOT NULL DEFAULT 0) $t");
