@@ -52,7 +52,14 @@ try {
         if ($sql === false || strlen($sql) < 20 || (stripos($sql, 'CREATE TABLE') === false && stripos($sql, 'INSERT INTO') === false)) { out(['ok' => false, 'msg' => 'Это не похоже на SQL-файл базы данных (.sql).'], 400); }
         try {
             @set_time_limit(300);
+            // the application creates its empty tables at start-up; the dump brings its own tables,
+            // so the empty ones are removed first (this is allowed only while there are no accounts)
+            $db->exec('SET FOREIGN_KEY_CHECKS=0');
+            foreach ($db->query('SHOW TABLES')->fetchAll(PDO::FETCH_COLUMN) as $tb) {
+                $db->exec('DROP TABLE IF EXISTS `' . str_replace('`', '', (string)$tb) . '`');
+            }
             $db->exec($sql);
+            $db->exec('SET FOREIGN_KEY_CHECKS=1');
         } catch (Throwable $e) {
             out(['ok' => false, 'msg' => 'Не удалось загрузить файл: ' . $e->getMessage()], 400);
         }

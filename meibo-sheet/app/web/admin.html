@@ -346,7 +346,6 @@ function ui(){
  const two=q=>SD[q].length>1?inp(q,1,SD[q][1])+`<button class="sb" data-a="rm" data-p="${q}">✕</button>`:`<button class="sb" data-a="ad" data-p="${q}" title="2人目を追加">+</button>`;
  let h=(msg?'<div class="warn">'+msg+'</div>':'')+(online?'':'<div class="warn">サーバーに接続できません。変更はまだ保存されていません。接続が戻ると自動で保存されます。</div>')+`<h3>利用者名簿</h3><div class="mut">${ME?esc(ME.username)+' · <a href="#" id="lgo">ログアウト</a>':''}</div>
  <div class="row"><input type="date" id="dt" value="${date}"><button id="pv1">←</button><button id="nx">→</button><b>（${WD[pd(date).getDay()]}）</b></div>
- <div class="row"><span>番号：</span><input type="number" id="seqN" min="1" max="4" value="${day().seq||(DB.counter%4)+1}" style="width:56px"><button id="seqS">設定</button></div>
  <div style="margin-top:8px"><div class="pp hdr"><span class="nm"></span><span class="md3"><button data-sortm="day" title="наверх: 通い">▲ 通い</button><button data-sortm="night" title="наверх: 泊まり">▲ 泊まり</button><button data-sortm="visit" title="наверх: 訪問">▲ 訪問</button></span></div>${P.slice().sort(byOrd).map(person).join('')}</div>
  ${(()=>{const hid=DB.people.filter(p=>p.v[0].from<=date&&off(p));return hid.length?`<details ${hidOpen?'open':''} ontoggle="hidOpen=this.open"><summary>欠席（${hid.length}）</summary>${hid.map(p=>`<div class="pp"><span class="nm">${esc(S(p).name)}</span><button data-a="sh" data-id="${p.id}">戻す</button><button data-a="pd" data-id="${p.id}">${armDel===p.id?'本当に削除？もう一度押してください':'完全に削除'}</button></div>`).join('')}</details>`:''})()}
  <div class="row"><button id="pred">いつも通りに設定</button><span class="mut">${Object.keys(PR).length?'★ いつもこの曜日に来る人':'同じ曜日のデータはまだありません'}</span></div>
@@ -359,7 +358,8 @@ function ui(){
  <div class="row">その他: <input type="text" data-a="sf" data-p="other" value="${esc(d.other)}" size="26"></div>
  <h4>印刷キュー（${Q.length} / 15）</h4><div class="row"><button id="qadd" ${Q.length>=15?'disabled':''}>キューに追加</button><button class="p" id="qpdf" ${Q.length?'':'disabled'}>まとめてPDF保存</button><button id="qclr" ${Q.length?'':'disabled'}>空にする</button></div><div>${Q.map(dt=>`<span class="tg">${dt.slice(5).replace('-','/')} <button class="sb" data-a="qd" data-i="${dt}">✕</button></span> `).join('')}</div>
  <h4>フォームA4（水分・排泄）</h4><div class="row"><label>日数：<input type="number" id="fdays" min="1" max="31" value="2" style="width:60px"></label><button id="fw">水分チェック表</button><button id="fe">排泄チェック表</button></div><div class="mut">1ページ目＝選択日、2ページ目＝翌日、以降も同様。両面印刷で1枚のA4に2日分です。</div>
- <h4>ファイル</h4><div class="row"><button class="p" id="pdf">PDFを保存</button></div>`;
+ <h4>ファイル</h4>
+ <div class="row"><span class="mut">番号（次のシートは続けて数えます）：</span><input type="number" id="seqN" min="1" max="4" value="${day().seq||(DB.counter%4)+1}" style="width:56px"><button id="seqS">設定</button></div><div class="row"><button class="p" id="pdf">PDFを保存</button></div>`;
  $('#ui').innerHTML=h}
 const upd=s=>{save();render();if(s){ui();if(PAGE==='admin')admDraw()}},P_=id=>DB.people.find(x=>String(x.id)===id);
 const U_=$('#ui');const on2=(t,f)=>{U_.addEventListener(t,f);$('#admw').addEventListener(t,f)};
