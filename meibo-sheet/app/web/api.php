@@ -76,7 +76,7 @@ try {
     if ($a === 'login') {
         $name = trim((string)(isset($in['u']) ? $in['u'] : ''));
         $pass = (string)(isset($in['p']) ? $in['p'] : '');
-        $st = $db->prepare('SELECT id, pass_hash, role, status, fails, fail_ts FROM users WHERE username = ?');
+        $st = $db->prepare('SELECT id, pass_hash, role, status, fails, fail_ts, lang FROM users WHERE username = ?');
         $st->execute([$name]);
         $u = $st->fetch();
         if ($u !== false && (int)$u['fails'] >= 8 && time() - (int)$u['fail_ts'] < 600) { out(['ok' => false, 'error' => 'locked']); }
@@ -92,7 +92,7 @@ try {
         if ($u['status'] !== 'active') { out(['ok' => false, 'error' => 'blocked']); }
         $db->prepare('UPDATE users SET fails = 0, last_login = CURRENT_TIMESTAMP WHERE id = ?')->execute([(int)$u['id']]);
         start_session($db, (int)$u['id']);
-        out(['ok' => true, 'user' => ['username' => $name, 'role' => $u['role']]]);
+        out(['ok' => true, 'user' => ['username' => $name, 'role' => $u['role'], 'lang' => $u['lang'] ?: 'ja']]);
     }
 
     if ($a === 'logout') {
@@ -113,7 +113,7 @@ try {
     $isAdmin = ($user['role'] === 'admin');
 
     if ($a === 'me') {
-        out(['ok' => true, 'user' => ['username' => $user['username'], 'role' => $user['role']]]);
+        out(['ok' => true, 'user' => ['username' => $user['username'], 'role' => $user['role'], 'lang' => $user['lang'] ?: 'ja']]);
     }
 
     switch ($a) {
@@ -244,7 +244,7 @@ try {
     case 'users_list':
         if (!$isAdmin) { out(['error' => 'forbidden'], 403); }
         $list = [];
-        foreach ($db->query('SELECT id, username, role, status, created_at, last_login FROM users ORDER BY id') as $r) { $list[] = $r; }
+        foreach ($db->query('SELECT id, username, role, status, lang, created_at, last_login FROM users ORDER BY id') as $r) { $list[] = $r; }
         out(['users' => $list]);
 
     case 'user_set':
@@ -256,6 +256,9 @@ try {
         } elseif ($op === 'block') {
             $db->prepare("UPDATE users SET status = 'blocked', upd = ? WHERE id = ? AND role <> 'admin'")->execute([now_ms(), $id]);
             $db->prepare("DELETE s FROM sessions s JOIN users u ON u.id = s.user_id WHERE u.id = ? AND u.role <> 'admin'")->execute([$id]);
+        } elseif ($op === 'lang') {
+            $lg = (string)(isset($in['lang']) ? $in['lang'] : '');
+            if ($lg === 'ja' || $lg === 'ru') { $db->prepare('UPDATE users SET lang = ?, upd = ? WHERE id = ?')->execute([$lg, now_ms(), $id]); }
         } elseif ($op === 'delete') {
             $st = $db->prepare("SELECT username FROM users WHERE id = ? AND role <> 'admin'");
             $st->execute([$id]);

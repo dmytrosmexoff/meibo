@@ -84,6 +84,7 @@ button.p{background:#2f6fed;color:#fff;border-color:#2f6fed}.row{display:flex;ga
 <button class="cmb" id="admb2" style="display:none">Админка</button>
 <div id="cmw"></div>
 <div id="admw"></div>
+<script src="i18n.js"></script>
 <script>
 const PAGE=(document.documentElement&&document.documentElement.getAttribute&&document.documentElement.getAttribute('data-page'))||'main';
 const $=s=>document.querySelector(s),WDR=['вс','пн','вт','ср','чт','пт','сб'],WD='日月火水木金土',pad=n=>String(n).padStart(2,'0'),TW=367.1;
@@ -255,7 +256,7 @@ async function boot(){
  if(r&&r.status===503){let j={};try{j=await r.json()}catch(e){}if(j.error==='setup'){wipeMem();location.href='setup.php';return}r=null}
  if(!r||!r.ok){online=false;if(cm&&!ME)ME=cm;$('#auth').style.display='none';showBtns();ui();render();return}
  let j;try{j=await r.json()}catch(e){online=false;ui();render();return}
- ME=j.user;online=true;$('#auth').style.display='none';showBtns();
+ ME=j.user;LANG=(ME&&ME.lang)||'ja';online=true;$('#auth').style.display='none';showBtns();
  if(PAGE==='admin'){if(ME.role!=='admin'){location.href='index.html';return}await reload();await admOpen('s');return}
  if(unsynced())await flush();else await reload();
  cacheSave();if(ME.role==='admin')admRefresh()}
@@ -292,7 +293,7 @@ function admPeople(){const L=[...DB.people].sort(byOrd);
 function admDraw(){const t=ADM.tab,ar=(id,op,l)=>`<button data-adm="${op}" data-id="${id}">${ADM.arm===id+':'+op?'Точно?':l}</button>`,tb=(k,l)=>`<button data-tab="${k}" ${t===k?'class="p"':''}>${l}</button>`;
  let h=`<a href="index.html" style="float:right">← К листу</a><h3>Администратор</h3><div class="row">${tb('s','Статистика')}${tb('p','Люди')}${tb('u','Аккаунты'+(ADM.pending?' (ждут: '+ADM.pending+')':''))}${tb('c','Комментарии ('+ADM.comments.length+')')}${tb('d','База данных')}</div>`;
  if(t==='s')h+=statsHTML();else if(t==='p')h+=admPeople();
- else if(t==='u')h+='<table class="sx"><tr><th>Пользователь</th><th>Роль</th><th>Статус</th><th></th></tr>'+ADM.users.map(u=>`<tr><td>${esc(u.username)}</td><td>${u.role==='admin'?'администратор':'пользователь'}</td><td>${{pending:'ждёт подтверждения',active:'активен',blocked:'остановлен'}[u.status]||esc(u.status)}</td><td>${u.role==='admin'?'':`${u.status!=='active'?ar(u.id,'approve','Подтвердить'):''} ${u.status==='active'?ar(u.id,'block','Остановить'):''} ${ar(u.id,'delete','Удалить')}`}</td></tr>`).join('')+'</table>';
+ else if(t==='u')h+='<table class="sx"><tr><th>Пользователь</th><th>Роль</th><th>Статус</th><th></th></tr>'+ADM.users.map(u=>`<tr><td>${esc(u.username)}</td><td>${u.role==='admin'?'администратор':'пользователь'}</td><td><select data-ulang="${u.id}"><option value="ja" ${u.lang!=='ru'?'selected':''}>日本語</option><option value="ru" ${u.lang==='ru'?'selected':''}>Русский</option></select></td><td>${{pending:'ждёт подтверждения',active:'активен',blocked:'остановлен'}[u.status]||esc(u.status)}</td><td>${u.role==='admin'?'':`${u.status!=='active'?ar(u.id,'approve','Подтвердить'):''} ${u.status==='active'?ar(u.id,'block','Остановить'):''} ${ar(u.id,'delete','Удалить')}`}</td></tr>`).join('')+'</table>';
  else if(t==='c')h+=ADM.comments.length?ADM.comments.map(c=>`<div class="hi"><b>${esc(c.username)}</b> <span class="mut">${esc(c.created_at)}</span> ${ar(c.id,'cdel','Удалить')}<pre style="white-space:pre-wrap;margin:4px 0">${esc(c.body)}</pre></div>`).join(''):'<div class="mut">Комментариев нет</div>';
  else h+=dbTab();
  $('#admw').innerHTML='<div class="win">'+h+'</div>'}
@@ -369,7 +370,7 @@ function ui(){
  <div class="row">夜勤: ${inp('night',0,st.night[0])}${two('night')}</div>
  <div class="row">その他: <input type="text" data-a="sf" data-p="other" value="${esc(d.other)}" size="26"></div>
  <h4>印刷キュー（${Q.length} / 15）</h4><div class="row"><button id="qadd" ${Q.length>=15?'disabled':''}>シート追加</button><button id="qaw" ${Q.length>=15?'disabled':''}>水分追加</button><button id="qae" ${Q.length>=15?'disabled':''}>排泄追加</button><button class="p" id="qpdf" ${Q.length?'':'disabled'}>まとめてPDF保存</button><button id="qclr" ${Q.length?'':'disabled'}>空にする</button></div><div>${Q.map(k=>{const[tp,dt]=qparse(k);return `<span class="tg">${tp==='water'?'水 ':tp==='excr'?'排 ':''}${dt.slice(5).replace('-','/')} <button class="sb" data-a="qd" data-i="${k}">✕</button></span> `}).join('')}</div>
- <h4>フォームA4（水分・排泄）</h4><div class="row"><label>日数：<input type="number" id="fdays" min="1" max="31" value="2" style="width:60px"></label><button id="fw">水分チェック表</button><button id="fe">排泄チェック表</button><button id="xw">PDF 水分</button><button id="xe">PDF 排泄</button></div><div class="mut">1ページ目＝選択日、2ページ目＝翌日、以降も同様。両面印刷で1枚のA4に2日分です。</div>
+ <h4>フォームA4（水分・排泄）</h4><div class="row"><label>日数：<input type="number" id="fdays" min="1" max="31" value="2" style="width:60px"></label><button id="xw">PDF 水分</button><button id="xe">PDF 排泄</button></div><div class="mut">1ページ目＝選択日、2ページ目＝翌日、以降も同様。両面印刷で1枚のA4に2日分です。</div>
  <h4>ファイル</h4>
  <div class="row"><span class="mut">番号（次のシートは続けて数えます）：</span><input type="number" id="seqN" min="1" max="4" value="${day().seq||(DB.counter%4)+1}" style="width:56px"><button id="seqS">設定</button></div><div class="row"><button class="p" id="pdf">PDFを保存</button></div>`;
  $('#ui').innerHTML=h}
@@ -416,11 +417,9 @@ U_.addEventListener('click',e=>{if(e.target.id==='lgo'){e.preventDefault();logou
  else if(b.id==='qaw'||b.id==='qae'){const k=(b.id==='qaw'?'water':'excr')+'|'+date;if(!Q.includes(k)&&Q.length<15){Q.push(k);Q.sort();qsave()}ui()}
  else if(b.id==='qclr'){Q=[];qsave();ui()}
  else if(b.id==='qpdf')printQueue()
- else if(b.id==='fw')printForms('water')
- else if(b.id==='seqS')setSeq()
- else if(b.id==='fe')printForms('excr')
- else if(b.id==='xw')xlsxForms('water')
- else if(b.id==='xe')xlsxForms('excr')
+  else if(b.id==='seqS')setSeq()
+  else if(b.id==='xw')printForms('water')
+ else if(b.id==='xe')printForms('excr')
  else if(b.id==='pv1'||b.id==='nx'){const x=pd(date);x.setDate(x.getDate()+(b.id==='nx'?1:-1));date=x.getFullYear()+'-'+pad(x.getMonth()+1)+'-'+pad(x.getDate());upd(1)}
  else if(b.id==='pdf')doPrint()});
 function openStats(){location.href='admin.html'}
@@ -458,6 +457,9 @@ $('#admw').addEventListener('click',async e=>{const t=e.target;
  const op=t.dataset&&t.dataset.adm;if(!op)return;const key=t.dataset.id+':'+op;
  if(op!=='approve'&&ADM.arm!==key){ADM.arm=key;admDraw();return}
  ADM.arm='';try{if(op==='cdel')await jp('comment_delete',{id:+t.dataset.id});else await jp('user_set',{id:+t.dataset.id,op});await admRefresh();ADM.comments=(await jp('comments_list',{})).comments}catch(x){}admDraw()});
-$('#admw').addEventListener('change',e=>{const t=e.target;if(t.id==='sm'){sm=t.value||null;admDraw();return}if(t.dataset&&t.dataset.apos){const v=parseInt(t.value,10);if(v>0)moveP(t.dataset.apos,v-1)}});
+$('#admw').addEventListener('change',async e=>{if(e.target.dataset&&e.target.dataset.ulang){try{await jp('user_set',{id:+e.target.dataset.ulang,op:'lang',lang:e.target.value});await admRefresh();admDraw()}catch(x){}return}const t=e.target;if(t.id==='sm'){sm=t.value||null;admDraw();return}if(t.dataset&&t.dataset.apos){const v=parseInt(t.value,10);if(v>0)moveP(t.dataset.apos,v-1)}});
+const _ui0=ui;ui=function(){_ui0();i18nApply(document.body)};
+const _admDraw0=admDraw;admDraw=function(){_admDraw0();i18nApply(document.body)};
+const _showAuth0=showAuth;showAuth=function(){_showAuth0();i18nApply(document.body)};
 addEventListener('resize',fit);ui();render();boot();setInterval(poll,20000);
 </script></body></html>

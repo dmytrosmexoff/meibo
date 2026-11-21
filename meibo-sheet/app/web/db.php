@@ -68,6 +68,7 @@ function db_open($host, $port, $name, $user, $pass, $timeout = 5) {
         foreach ($db->query('SELECT id, data FROM people')->fetchAll() as $r) { mirror_person($db, $r['id'], $r['data']); }
         foreach ($db->query('SELECT d, data FROM days')->fetchAll() as $r) { mirror_day($db, $r['d'], $r['data']); }
     }
+    if ($col('users', 'lang') === 0) { $db->exec("ALTER TABLE users ADD COLUMN lang VARCHAR(4) NOT NULL DEFAULT 'ja'"); }
     foreach (['people', 'days', 'users'] as $tb) {
         if ($col($tb, 'upd') === 0) { $db->exec("ALTER TABLE $tb ADD COLUMN upd BIGINT NOT NULL DEFAULT 0"); }
     }
@@ -199,7 +200,7 @@ function admin_key() {
 // ---------- accounts: long-lived login (no automatic logout) ----------
 function current_user($db) {
     if (empty($_COOKIE['meibo_sid']) || !is_string($_COOKIE['meibo_sid'])) { return null; }
-    $st = $db->prepare("SELECT u.id, u.username, u.role, u.status FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token_hash = ? AND u.status = 'active'");
+    $st = $db->prepare("SELECT u.id, u.username, u.role, u.status, u.lang FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token_hash = ? AND u.status = 'active'");
     $st->execute([hash('sha256', $_COOKIE['meibo_sid'])]);
     $u = $st->fetch();
     return $u === false ? null : $u;
