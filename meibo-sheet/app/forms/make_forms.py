@@ -7,6 +7,7 @@
 import copy, datetime, json, os, shutil, subprocess, sys, tempfile
 import openpyxl
 from openpyxl.utils import get_column_letter
+from openpyxl.styles import Border, Side, Alignment, Font
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE = {'water': os.path.join(HERE, '水分表.xlsx'), 'excr': os.path.join(HERE, '排泄表.xlsx')}
@@ -39,20 +40,72 @@ def fill_sheet(ws, kind, pattern, date_str, names, extra_blank):
         ws.row_dimensions[r1].height = pattern['h3']
         ws.row_dimensions[r2].height = pattern['h4']
         for (c1, rr1, c2, rr2) in pattern['merges']:
-            ws.merge_cells(start_row=r1 + (rr1 - 3), start_column=c1, end_row=r1 + (rr2 - 3), end_column=c2)
+            top_r = r1 + (rr1 - 3)
+            bot_r = r1 + (rr2 - 3)
+            ws.merge_cells(start_row=top_r, start_column=c1, end_row=bot_r, end_column=c2)
+            # no line through the merged cell: drop the inner bottom edge
+            for cc in range(c1, c2 + 1):
+                for rr in range(top_r, bot_r):
+                    cell = ws.cell(rr, cc)
+                    b = cell.border
+                    cell.border = Border(left=b.left, right=b.right, top=b.top, bottom=Side(style=None))
         ws.cell(r1, 1).value = i + 1
-        ws.cell(r1, 2).value = name if name else None
+        nc = ws.cell(r1, 2)
+        nc.value = name if name else None
+        # names: larger and centred; the size fits the height of the slot
+        row_pt = (194 / 25.4 * 72) / last_row
+        size = max(8, min(15, round(2 * row_pt * 0.62, 1)))
+        f0 = nc.font
+        nc.font = Font(name=f0.name, sz=size, bold=False, color=f0.color)
+        nc.alignment = Alignment(horizontal='center', vertical='center', shrink_to_fit=True)
         if kind == 'excr':
             ws.cell(r1, 3).value = 'H'
             ws.cell(r2, 3).value = 'K'
     # 3) title and print area (one A4 page per day)
     ws.cell(1, 1).value = '%s\u3000\u3000\u3000\u3000\u3000\u3000\u3000\u3000\u3000\u3000%d年\u3000%d月\u3000%d日\u3000%s曜日' % (LABEL[kind], y, m, d, wd)
     ws.print_area = 'A1:%s%d' % (get_column_letter(max_col), last_row)
+    stretch(ws, last_row, kind)
+    ws.page_margins.left = ws.page_margins.right = 0.31
+    ws.page_margins.top = ws.page_margins.bottom = 0.31
+    ws.page_margins.header = ws.page_margins.footer = 0.1
     ws.sheet_properties.pageSetUpPr.fitToPage = True
     ws.page_setup.fitToWidth = 1
     ws.page_setup.fitToHeight = 1
     ws.page_setup.orientation = 'landscape'
     ws.title = date_str
+
+def stretch(ws, last_row, kind='excr'):
+    # the table fills the A4 landscape page (about 281 x 194 mm)
+    from openpyxl.worksheet.dimensions import ColumnDimension
+    page_w, page_h = 281.0, 194.0
+    cols = list(range(1, ws.max_column + 1))
+    if kind == 'water':
+        fixed = {1: 8.0, 2: 40.0, 16: 16.0, 28: 16.0}           # number, name, 小計, 合計 (mm)
+        hour_cols = [c for c in cols if c not in fixed]
+        hour_w = (page_w - sum(fixed.values())) / len(hour_cols)
+        mm = {c: fixed.get(c, hour_w) for c in cols}
+    else:
+        default = ws.sheet_format.defaultColWidth or 8.43
+        widths = {}
+        for dim in list(ws.column_dimensions.values()):
+            if dim.min and dim.max:
+                for i in range(dim.min, dim.max + 1):
+                    widths[i] = dim.width or default
+        pts = [widths.get(c, default) * 6.7 + 3.75 for c in cols]
+        pts[0] = max(pts[0], 11 / 25.4 * 72)
+        if len(pts) > 1:
+            pts[1] = max(pts[1], 60 / 25.4 * 72)
+        k = (page_w / 25.4 * 72) / sum(pts)
+        mm = {c: p * k / 72 * 25.4 for c, p in zip(cols, pts)}
+    for key in list(ws.column_dimensions.keys()):
+        del ws.column_dimensions[key]
+    for c in cols:
+        letter = get_column_letter(c)
+        pt = mm[c] / 25.4 * 72
+        ws.column_dimensions[letter] = ColumnDimension(ws, index=letter, width=max(1.0, (pt - 3.75) / 6.7))
+    h = (page_h / 25.4 * 72) / last_row
+    for r in range(1, last_row + 1):
+        ws.row_dimensions[r].height = h
 
 def capture(tpl):
     max_col = tpl.max_column
