@@ -17,7 +17,7 @@ button.p{background:#2f6fed;color:#fff;border-color:#2f6fed}.row{display:flex;ga
 .tg{font-size:11px;background:#e6e9f7;padding:0 4px;border-radius:4px}.sb{padding:0 8px}#ui hr{border:0;border-top:1px dashed #bbb;margin:6px 0}
 .sx{border-collapse:collapse;font-size:12px;margin:6px 0}.sx td,.sx th{border:1px solid #ddd;padding:2px 6px;text-align:center}.sx td:first-child{text-align:left}#stb h4{margin:14px 0 4px}.bar{display:flex;align-items:center;gap:6px;font-size:12px}.bar span{width:64px}.bar i{height:9px;background:#8aa7f0;display:block}
 .pp{display:flex;gap:6px;align-items:center;padding:3px 0;flex-wrap:nowrap}.pp .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.md3{display:flex;gap:7px;white-space:nowrap}.md3>*{width:64px;justify-content:center;box-sizing:border-box}.pp.hdr{font-size:12px;color:#445}.pp.hdr button{padding:2px 4px}.ck{white-space:nowrap;display:inline-flex;align-items:center;gap:2px}
+.md3{display:flex;gap:7px;white-space:nowrap}.md3>*{width:64px;justify-content:center;box-sizing:border-box}.pp.hdr{font-size:12px;color:#445}.pp>input[type=checkbox]{width:16px;margin:0}.pp>button{width:30px;padding:2px 0}.hsp{width:16px;flex:none}.hsp2{width:78px;flex:none}.pp.hdr button{padding:2px 4px}.ck{white-space:nowrap;display:inline-flex;align-items:center;gap:2px}
 .vm{margin:0 0 4px 24px;font-size:13px;color:#445}.vm .ck{margin-right:9px}
 .eg{display:grid;grid-template-columns:60px repeat(3,1fr);gap:5px 6px;align-items:center;margin:8px 0}.eg b{font-weight:600}
 .g6{display:grid;grid-template-columns:repeat(3,1fr);height:var(--r)}
@@ -185,18 +185,25 @@ async function doPrint(){ensure();clearTimeout(timer);await flush();if(busy)awai
 /* ---- print queue: up to 15 finished days, saved together as one PDF ---- */
 let Q=[];try{Q=JSON.parse(localStorage.getItem('meibo_q')||'[]')}catch(e){}
 const qsave=()=>{try{localStorage.setItem('meibo_q',JSON.stringify(Q))}catch(e){}};
+const qparse=k=>k.indexOf('|')>0?k.split('|'):['sheet',k];
 const jdOf=dt=>{const[y,m,d]=dt.split('-').map(Number);return y+'年'+m+'月'+d+'日'};
 /* ---- A4 forms: 水分チェック表 and 排泄チェック表, one page per day, printed as a double-sided set ---- */
 function sortMode(m){const all=[...DB.people].sort(byOrd),L=all.filter(p=>vis(p)),on=L.filter(p=>modeOf(p,day(),date)===m),rest=all.filter(p=>!on.includes(p));
  [...on,...rest].forEach((p,i)=>{p.ord=i+1});save();render();ui()}
 async function setSeq(){const n=parseInt($('#seqN').value,10);if(!(n>=1&&n<=4)){msg='番号は 1〜4 です';ui();return}
  try{await flush();await jp('set_seq',{d:date,n});await reload();msg='';ui()}catch(e){msg='番号を保存できませんでした';ui()}}
-function attendeesFor(dt){const d0=date;let dd=DB.days[dt];
+async function xlsxForms(kind){const n=Math.max(1,Math.min(31,parseInt($('#fdays')?$('#fdays').value:'2',10)||2)),d0=date,days=[];
+ for(let i=0;i<n;i++){const x=pd(d0);x.setDate(x.getDate()+i);const dt=dkey(x);days.push({date:dt,names:attendeesFor(dt,true)})}
+ try{const r=await fetch('api.php?a=forms_xlsx',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind,days})});
+  if(!r.ok){let j={};try{j=await r.json()}catch(e){}msg=j.msg||'Не удалось создать PDF';ui();return}
+  const blob=await r.blob(),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=d0+(kind==='water'?'_水分表.pdf':'_排泄表.pdf');document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},4000)}
+ catch(e){msg='Нет связи с сервером';ui()}}
+function attendeesFor(dt,onlyReg){const d0=date;let dd=DB.days[dt];
  if(!dd||!dd.present.length){date=dt;const m=pred();date=d0;dd={present:[],overnight:[],modes:{}};Object.keys(m).forEach(k=>{const p=DB.people.find(x=>String(x.id)===k);if(p){dd.present.push(p.id);dd.modes[p.id]=m[k].mode}})}
  const md2=p=>modeOf(p,dd,dt),P=DB.people.filter(p=>vis(p,dt)&&dd.present.includes(p.id));
  const reg=P.filter(p=>['day','night'].includes(md2(p))).sort((a,b)=>(md2(b)==='night')-(md2(a)==='night')||byOrd(a,b));
  const vs=P.filter(p=>md2(p)==='visit').sort(byOrd);
- return [...reg,...vs].map(p=>S(p,dt).name)}
+ return [...reg,...(onlyReg?[]:vs)].map(p=>S(p,dt).name)}
 function formWaterHTML(dt,names){const rows=[...names,...Array(4).fill('')],[y,m,d]=dt.split('-').map(Number),wd=WD[pd(dt).getDay()];
  const rh=Math.min(9,Math.max(5.5,176/(rows.length+1))),cells=n=>Array(n).fill('<td></td>').join('');
  const hrs=(a,b)=>[...Array(b-a).keys()].map(i=>`<th>${i+a}</th>`).join('');
@@ -210,12 +217,16 @@ async function printForms(kind){const el=$('#fdays'),n=Math.max(1,Math.min(31,pa
  document.title=jdOf(d0)+(kind==='water'?'_水分チェック表':'_排泄チェック表');
  try{window.print()}catch(e){}
  setTimeout(()=>{document.body.classList.remove('pq');box.innerHTML='';document.title='利用者名簿'},60000)}
-async function printQueue(){const ds=[...Q].sort();if(!ds.length)return;
+async function printQueue(){const items=[...Q].map(qparse).sort((x,y)=>x[1]<y[1]?-1:x[1]>y[1]?1:(x[0]<y[0]?-1:x[0]>y[0]?1:0));if(!items.length)return;
  if(typeof flush==='function'){clearTimeout(timer);await flush();if(busy)await new Promise(r=>setTimeout(r,800))}
  const box=$('#qprint'),keep=date;box.innerHTML='';box.style.cssText='display:block;position:absolute;left:-30000px;top:0;visibility:hidden';
- ds.forEach(dt=>{date=dt;const o=sheetInner(),pg=document.createElement('div');pg.className='qpage';pg.innerHTML='<div class="sheetp" style="--r:'+o.r+'mm">'+o.html+'</div>';box.appendChild(pg);place(pg,o);const sp_=pg.firstChild||{style:{},offsetHeight:0},k_=Math.min(1,284/Math.max(sp_.offsetHeight*25.4/96,o.pb));sp_.style.zoom=String(k_)});
+ items.forEach(([tp,dt])=>{
+  if(tp==='sheet'){date=dt;const o=sheetInner(),pg=document.createElement('div');pg.className='qpage';pg.innerHTML='<div class="sheetp" style="--r:'+o.r+'mm">'+o.html+'</div>';box.appendChild(pg);place(pg,o);const sp_=pg.firstChild||{style:{},offsetHeight:0},k_=Math.min(1,284/Math.max(sp_.offsetHeight*25.4/96,o.pb));sp_.style.zoom=String(k_)}
+  else{const names=attendeesFor(dt,true),pg=document.createElement('div');pg.innerHTML=tp==='water'?formWaterHTML(dt,names):formExcrHTML(dt,names);box.appendChild(pg)}
+ });
  date=keep;box.style.cssText='';document.body.classList.add('pq');printed=false;
- document.title=ds.length>1?jdOf(ds[0])+'〜'+jdOf(ds[ds.length-1])+'_利用者名簿':jdOf(ds[0])+'_利用者名簿';
+ const f0=items[0][1],f1=items[items.length-1][1];
+ document.title=(f0===f1?jdOf(f0):jdOf(f0)+'〜'+jdOf(f1))+'_利用者名簿';
  try{window.print()}catch(e){}
  setTimeout(()=>{if(!printed){document.body.classList.remove('pq');box.innerHTML='';document.title='利用者名簿';msg='この画面では印刷できません。ChromeまたはEdgeで直接開いてください。';ui()}},1200)}
 addEventListener('afterprint',()=>{document.body.classList.remove('pq');const b=$('#qprint');if(b)b.innerHTML=''});
@@ -288,13 +299,14 @@ function admDraw(){const t=ADM.tab,ar=(id,op,l)=>`<button data-adm="${op}" data-
 function cmOpen(){const w=$('#cmw');w.style.display='block';w.innerHTML='<div class="win"><h3>開発者へのコメント</h3><p class="mut">ご意見・不具合などを自由に書いてください。送信した内容は画面には表示されません。</p><textarea id="cmt" rows="6" style="width:100%"></textarea><p><button class="p" id="cms">送信</button> <button id="cmx">閉じる</button> <span id="cmr" class="mut"></span></p></div>'}
 function sheetInner(){
  const d=day(),P=DB.people.filter(p=>vis(p)),md=p=>modeOf(p,d,date),ov=p=>md(p)==='night';
- const reg=P.filter(p=>['day','night'].includes(md(p))).sort((a,b)=>ov(b)-ov(a)||byOrd(a,b)),vs=P.filter(p=>md(p)==='visit').sort(byOrd);
+ const grpOf=p=>{if(md(p)==='night')return 1;const m=mealsOf(p,md(p),d,date);if(m.b)return 2;if(m.l&&!m.d)return 2;if(m.d||m.l)return 3;return 4};
+ const reg=P.filter(p=>['day','night'].includes(md(p))).sort((a,b)=>grpOf(a)-grpOf(b)||byOrd(a,b)),vs=P.filter(p=>md(p)==='visit').sort(byOrd);
  const bl1=reg.length>16?3:5,N=reg.length+vs.length+bl1+2,AV=264,BF=[9.2,7.1,8.5,7.8],BM=[6,4.5,8.5,4.5],sm_=a=>a.reduce((x,y)=>x+y,0);let r=7.76,bh=BF.slice();
  if(N*r+sm_(BF)>AV){const room=AV-N*r;if(room>=sm_(BM)){const kk=(room-sm_(BM))/(sm_(BF)-sm_(BM));bh=BF.map((v,i)=>BM[i]+(v-BM[i])*kk)}else{bh=BM.slice();r=Math.max(5.2,(AV-sm_(BM))/N)}}
  const hasRin=[...reg,...vs].some(p=>S(p).meds&&S(p).meds.abx),U2=U.slice();U2[13]=hasRin?90:24;{const L=Math.max(0,...[...reg,...vs].map(p=>(S(p).note||'').length));U2[8]=Math.min(440,Math.max(170,60+L*14));}const f=(TW-r)/U2.reduce((a,b)=>a+b,0),W=U2.map(u=>u?u*f:r);
  const X=[0];W.forEach(w=>X.push(X[X.length-1]+w));
  const cnt=[0,0,0];[...reg,...vs].forEach(p=>['b','l','d'].forEach((k,j)=>{if(mealsOf(p,md(p),d,date)[k])cnt[j]++}));
- const nd=reg.filter(p=>md(p)==='day').length,nn=reg.filter(p=>md(p)==='night').length;
+ const nd=reg.length,nn=reg.filter(p=>md(p)==='night').length;
  const vt=t=>`<th><span class="vt">${t}</span></th>`,h=(t,c)=>`<th class="${c||''}">${t}</th>`;
  const hd=[vt('帳面<br>記入'),vt('利用'),vt('番号'),h('利用者氏名'),vt('泊まり'),vt('送迎時<br>訪問等'),h('最終排便'),h('排便－<br>日数'),h('注意点'),h('バイタル'),
   `<th class="h13">食事</th>`,vt('おやつ'),h('服薬','h13'),(hasRin?h('臨薬','h13'):vt('臨薬')),h('口腔<br>ケア'),h('整容','h13'),vt('入浴'),h('アクト'),
@@ -334,7 +346,7 @@ function ui(){
  const person=p=>{const s=S(p),mo=modeOf(p,d,date),id=`data-id="${p.id}"`;
   const cb=(a,k,on,label)=>`<label class="ck"><input type="checkbox" data-a="${a}" ${k?`data-k="${k}"`:''} ${id} ${on?'checked':''}>${label}</label>`;
   const M3=[['b','朝'],['l','昼'],['d','夕']];
-  let h=`<div class="pp"><input type="checkbox" data-a="pr" ${id} ${mo?'checked':''}><span class="nm">${s.kind==='visit'?'<span class="tg">訪問</span> ':''}<span data-nm="${p.id}">${esc(s.name)}</span>${PR[p.id]?` <span class="mut" title="この曜日はいつも来ています">★</span>`:''}</span><span class="md3">${cb('dy','',mo==='day','通い')}${cb('ov','',mo==='night','泊まり')}${cb('vd','',mo==='visit','訪問')}</span><button data-a="ed" ${id}>✎</button><button data-a="del" ${id} title="欠席リストへ">✕</button></div>`;
+  let h=`<div class="pp"><input type="checkbox" data-a="pr" ${id} ${mo?'checked':''}><span class="nm">${s.kind==='visit'?'<span class="tg">訪問</span> ':''}<span data-nm="${p.id}">${esc(s.name)}</span>${PR[p.id]?` <span class="mut" title="この曜日はいつも来ています">★</span>`:''}</span><span class="md3">${cb('dy','',mo==='day','通')}${cb('ov','',mo==='night','泊')}${cb('vd','',mo==='visit','訪')}</span><button data-a="ed" ${id}>✎</button><button data-a="del" ${id} title="欠席リストへ">✕</button></div>`;
   if(open.has(p.id))h+=`<div class="ed"><div class="row"><input type="text" data-a="f" data-k="name" ${id} value="${esc(s.name)}"><select data-a="f" data-k="kind" ${id}><option value="regular" ${s.kind==='regular'?'selected':''}>通い/泊まり</option><option value="visit" ${s.kind==='visit'?'selected':''}>訪問</option></select></div>
   <div class="eg"><b>食事</b>${M3.map(m=>cb('ml',m[0],s.meals[m[0]],m[1])).join('')}<b>訪問食</b>${M3.map(m=>cb('mv',m[0],(s.mealsV||{})[m[0]],m[1])).join('')}<b>配</b>${M3.map(m=>cb('dv',m[0],dv(s)[m[0]],m[1])).join('')}<b>服薬</b>${[['morning','朝'],['noon','昼'],['evening','夕']].map(m=>cb('md',m[0],s.meds[m[0]],m[1])).join('')}<b></b>${[['nextMorning','翌朝'],['patch','貼り薬'],['bedtime','寝る前']].map(m=>cb('md',m[0],s.meds[m[0]],m[1])).join('')}<b>臨薬</b>${cb('md','abx',s.meds.abx,'抗生物質')}<span></span><span></span></div>
   <div>注意点:<textarea rows="2" data-a="f" data-k="note" placeholder="重要な情報" ${id}>${esc(s.note)}</textarea></div></div>`;
@@ -346,7 +358,7 @@ function ui(){
  const two=q=>SD[q].length>1?inp(q,1,SD[q][1])+`<button class="sb" data-a="rm" data-p="${q}">✕</button>`:`<button class="sb" data-a="ad" data-p="${q}" title="2人目を追加">+</button>`;
  let h=(msg?'<div class="warn">'+msg+'</div>':'')+(online?'':'<div class="warn">サーバーに接続できません。変更はまだ保存されていません。接続が戻ると自動で保存されます。</div>')+`<h3>利用者名簿</h3><div class="mut">${ME?esc(ME.username)+' · <a href="#" id="lgo">ログアウト</a>':''}</div>
  <div class="row"><input type="date" id="dt" value="${date}"><button id="pv1">←</button><button id="nx">→</button><b>（${WD[pd(date).getDay()]}）</b></div>
- <div style="margin-top:8px"><div class="pp hdr"><span class="nm"></span><span class="md3"><button data-sortm="day" title="наверх: 通い">▲ 通い</button><button data-sortm="night" title="наверх: 泊まり">▲ 泊まり</button><button data-sortm="visit" title="наверх: 訪問">▲ 訪問</button></span></div>${P.slice().sort(byOrd).map(person).join('')}</div>
+ <div style="margin-top:8px"><div class="pp hdr"><span class="hsp"></span><span class="nm"></span><span class="md3"><button data-sortm="day" title="наверх: 通">▲通</button><button data-sortm="night" title="наверх: 泊">▲泊</button><button data-sortm="visit" title="наверх: 訪">▲訪</button></span><span class="hsp2"></span></div>${P.slice().sort(byOrd).map(person).join('')}</div>
  ${(()=>{const hid=DB.people.filter(p=>p.v[0].from<=date&&off(p));return hid.length?`<details ${hidOpen?'open':''} ontoggle="hidOpen=this.open"><summary>欠席（${hid.length}）</summary>${hid.map(p=>`<div class="pp"><span class="nm">${esc(S(p).name)}</span><button data-a="sh" data-id="${p.id}">戻す</button><button data-a="pd" data-id="${p.id}">${armDel===p.id?'本当に削除？もう一度押してください':'完全に削除'}</button></div>`).join('')}</details>`:''})()}
  <div class="row"><button id="pred">いつも通りに設定</button><span class="mut">${Object.keys(PR).length?'★ いつもこの曜日に来る人':'同じ曜日のデータはまだありません'}</span></div>
  <div class="row" style="margin-top:8px"><input type="text" id="np" placeholder="新しい名前" size="16"><select id="nk"><option value="regular">通い/泊まり</option><option value="visit">訪問</option></select><button id="add">＋ 追加</button></div>
@@ -356,8 +368,8 @@ function ui(){
  ${st.day.map((t,j)=>dayRow(j,t,false)).join('')}${st.day.length<9?dayRow(st.day.length,'',true):''}
  <div class="row">夜勤: ${inp('night',0,st.night[0])}${two('night')}</div>
  <div class="row">その他: <input type="text" data-a="sf" data-p="other" value="${esc(d.other)}" size="26"></div>
- <h4>印刷キュー（${Q.length} / 15）</h4><div class="row"><button id="qadd" ${Q.length>=15?'disabled':''}>キューに追加</button><button class="p" id="qpdf" ${Q.length?'':'disabled'}>まとめてPDF保存</button><button id="qclr" ${Q.length?'':'disabled'}>空にする</button></div><div>${Q.map(dt=>`<span class="tg">${dt.slice(5).replace('-','/')} <button class="sb" data-a="qd" data-i="${dt}">✕</button></span> `).join('')}</div>
- <h4>フォームA4（水分・排泄）</h4><div class="row"><label>日数：<input type="number" id="fdays" min="1" max="31" value="2" style="width:60px"></label><button id="fw">水分チェック表</button><button id="fe">排泄チェック表</button></div><div class="mut">1ページ目＝選択日、2ページ目＝翌日、以降も同様。両面印刷で1枚のA4に2日分です。</div>
+ <h4>印刷キュー（${Q.length} / 15）</h4><div class="row"><button id="qadd" ${Q.length>=15?'disabled':''}>シート追加</button><button id="qaw" ${Q.length>=15?'disabled':''}>水分追加</button><button id="qae" ${Q.length>=15?'disabled':''}>排泄追加</button><button class="p" id="qpdf" ${Q.length?'':'disabled'}>まとめてPDF保存</button><button id="qclr" ${Q.length?'':'disabled'}>空にする</button></div><div>${Q.map(k=>{const[tp,dt]=qparse(k);return `<span class="tg">${tp==='water'?'水 ':tp==='excr'?'排 ':''}${dt.slice(5).replace('-','/')} <button class="sb" data-a="qd" data-i="${k}">✕</button></span> `}).join('')}</div>
+ <h4>フォームA4（水分・排泄）</h4><div class="row"><label>日数：<input type="number" id="fdays" min="1" max="31" value="2" style="width:60px"></label><button id="fw">水分チェック表</button><button id="fe">排泄チェック表</button><button id="xw">PDF 水分</button><button id="xe">PDF 排泄</button></div><div class="mut">1ページ目＝選択日、2ページ目＝翌日、以降も同様。両面印刷で1枚のA4に2日分です。</div>
  <h4>ファイル</h4>
  <div class="row"><span class="mut">番号（次のシートは続けて数えます）：</span><input type="number" id="seqN" min="1" max="4" value="${day().seq||(DB.counter%4)+1}" style="width:56px"><button id="seqS">設定</button></div><div class="row"><button class="p" id="pdf">PDFを保存</button></div>`;
  $('#ui').innerHTML=h}
@@ -401,11 +413,14 @@ U_.addEventListener('click',e=>{if(e.target.id==='lgo'){e.preventDefault();logou
  else if(b.id==='add'){const v=$('#np').value.trim();if(v){addP(v,$('#nk').value);upd(1)}}
  else if(b.id==='pred')fill();
  else if(b.id==='qadd'){ensure();save();if(!Q.includes(date)&&Q.length<15){Q.push(date);Q.sort();qsave()}ui()}
+ else if(b.id==='qaw'||b.id==='qae'){const k=(b.id==='qaw'?'water':'excr')+'|'+date;if(!Q.includes(k)&&Q.length<15){Q.push(k);Q.sort();qsave()}ui()}
  else if(b.id==='qclr'){Q=[];qsave();ui()}
  else if(b.id==='qpdf')printQueue()
  else if(b.id==='fw')printForms('water')
  else if(b.id==='seqS')setSeq()
  else if(b.id==='fe')printForms('excr')
+ else if(b.id==='xw')xlsxForms('water')
+ else if(b.id==='xe')xlsxForms('excr')
  else if(b.id==='pv1'||b.id==='nx'){const x=pd(date);x.setDate(x.getDate()+(b.id==='nx'?1:-1));date=x.getFullYear()+'-'+pad(x.getMonth()+1)+'-'+pad(x.getDate());upd(1)}
  else if(b.id==='pdf')doPrint()});
 function openStats(){location.href='admin.html'}

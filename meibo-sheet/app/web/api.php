@@ -387,6 +387,37 @@ try {
         $db->commit();
         out(['ok' => true]);
 
+    case 'forms_xlsx':
+        $kind = (string)(isset($in['kind']) ? $in['kind'] : '');
+        if ($kind !== 'water' && $kind !== 'excr') { out(['ok' => false, 'msg' => 'Неизвестный бланк.'], 400); }
+        $clean = [];
+        foreach (array_slice((isset($in['days']) && is_array($in['days'])) ? $in['days'] : [], 0, 31) as $dd) {
+            $dt = (string)(isset($dd['date']) ? $dd['date'] : '');
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $dt)) { out(['ok' => false, 'msg' => 'Неверная дата.'], 400); }
+            $nm = (isset($dd['names']) && is_array($dd['names'])) ? array_values(array_slice(array_map('strval', $dd['names']), 0, 200)) : [];
+            $clean[] = ['date' => $dt, 'names' => $nm];
+        }
+        if (count($clean) === 0) { out(['ok' => false, 'msg' => 'Нет дней для печати.'], 400); }
+        $tmpIn = tempnam(sys_get_temp_dir(), 'frm');
+        $tmpOut = $tmpIn . '.pdf';
+        file_put_contents($tmpIn, json_encode(['kind' => $kind, 'days' => $clean], JSON_UNESCAPED_UNICODE));
+        $cmd = 'python3 ' . escapeshellarg('/opt/meibo/forms/make_forms.py') . ' ' . escapeshellarg($tmpIn) . ' ' . escapeshellarg($tmpOut) . ' 2>&1';
+        $lines = [];
+        $code = 0;
+        @exec($cmd, $lines, $code);
+        if ($code !== 0 || !is_file($tmpOut)) {
+            @unlink($tmpIn);
+            out(['ok' => false, 'msg' => 'Не удалось создать PDF: ' . implode(' ', array_slice($lines, -3))], 500);
+        }
+        $fname = $clean[0]['date'] . ($kind === 'water' ? '_水分表' : '_排泄表') . '.pdf';
+        header('Content-Type: application/pdf');
+        header("Content-Disposition: attachment; filename*=UTF-8''" . rawurlencode($fname));
+        header('Content-Length: ' . filesize($tmpOut));
+        readfile($tmpOut);
+        @unlink($tmpIn);
+        @unlink($tmpOut);
+        exit;
+
     case 'admin_link':
         if (!$isAdmin) { out(['error' => 'forbidden'], 403); }
         out(['url' => 'kanri.php?k=' . admin_key()]);
