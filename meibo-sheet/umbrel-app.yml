@@ -2,7 +2,7 @@ manifestVersion: 1
 id: meibo-sheet
 category: productivity
 name: 利用者名簿
-version: "1.9.8"
+version: "1.9.10"
 tagline: 日次の利用者名簿を作成して印刷
 description: >-
   利用者名簿（A3）を毎日作成し、PDFで保存できるアプリです。

@@ -418,8 +418,8 @@ U_.addEventListener('click',e=>{if(e.target.id==='lgo'){e.preventDefault();logou
  else if(b.id==='qclr'){Q=[];qsave();ui()}
  else if(b.id==='qpdf')printQueue()
   else if(b.id==='seqS')setSeq()
-  else if(b.id==='xw')printForms('water')
- else if(b.id==='xe')printForms('excr')
+  else if(b.id==='xw')xlsxForms('water')
+ else if(b.id==='xe')xlsxForms('excr')
  else if(b.id==='pv1'||b.id==='nx'){const x=pd(date);x.setDate(x.getDate()+(b.id==='nx'?1:-1));date=x.getFullYear()+'-'+pad(x.getMonth()+1)+'-'+pad(x.getDate());upd(1)}
  else if(b.id==='pdf')doPrint()});
 function openStats(){location.href='admin.html'}
