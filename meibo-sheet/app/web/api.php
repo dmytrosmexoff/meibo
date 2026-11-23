@@ -124,8 +124,8 @@ try {
             $people[] = ['id' => $r['id'], 'rev' => (int)$r['rev'], 'data' => $r['data']];
         }
         $staff = [];
-        foreach ($db->query('SELECT name FROM staff ORDER BY pos') as $r) {
-            $staff[] = $r['name'];
+        foreach ($db->query('SELECT name, letter FROM staff ORDER BY pos') as $r) {
+            $staff[] = ['name' => $r['name'], 'letter' => $r['letter']];
         }
         $days = [];
         foreach ($db->query('SELECT d, seq, rev, data FROM days ORDER BY d') as $r) {
@@ -178,8 +178,14 @@ try {
         $names = (isset($in['names']) && is_array($in['names'])) ? array_values($in['names']) : [];
         $db->beginTransaction();
         $db->exec('DELETE FROM staff');
-        $ins = $db->prepare('INSERT INTO staff (pos, name) VALUES (?, ?)');
-        foreach ($names as $i => $nm) { $ins->execute([$i, (string)$nm]); }
+        $ins = $db->prepare('INSERT INTO staff (pos, name, letter) VALUES (?, ?, ?)');
+        $pos = 0;
+        foreach ($names as $nm) {
+            $n = is_array($nm) ? trim((string)(isset($nm['name']) ? $nm['name'] : '')) : trim((string)$nm);
+            $l = is_array($nm) ? trim((string)(isset($nm['letter']) ? $nm['letter'] : '')) : '';
+            if ($n === '') { continue; }
+            $ins->execute([$pos++, mb_substr($n, 0, 255, 'UTF-8'), mb_substr($l, 0, 16, 'UTF-8')]);
+        }
         $db->commit();
         meta_put($db, 'staff_ts', now_ms());
         out(['ok' => true]);

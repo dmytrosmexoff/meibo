@@ -127,11 +127,11 @@ function copy_day($src, $dst, $d) {
 }
 function copy_staff($src, $dst) {
     $names = [];
-    foreach ($src->query('SELECT name FROM staff ORDER BY pos') as $r) { $names[] = $r['name']; }
+    foreach ($src->query('SELECT name, letter FROM staff ORDER BY pos') as $r) { $names[] = ['name' => $r['name'], 'letter' => $r['letter']]; }
     $dst->beginTransaction();
     $dst->exec('DELETE FROM staff');
-    $ins = $dst->prepare('INSERT INTO staff (pos, name) VALUES (?, ?)');
-    foreach ($names as $i => $n) { $ins->execute([$i, $n]); }
+    $ins = $dst->prepare('INSERT INTO staff (pos, name, letter) VALUES (?, ?, ?)');
+    foreach ($names as $i => $n) { $ins->execute([$i, $n['name'], $n['letter']]); }
     $dst->commit();
     meta_put($dst, 'staff_ts', meta_get($src, 'staff_ts'));
 }

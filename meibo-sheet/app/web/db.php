@@ -41,7 +41,7 @@ function db_open($host, $port, $name, $user, $pass, $timeout = 5) {
     $t = 'ENGINE=InnoDB DEFAULT CHARSET=utf8mb4';
     $db->exec("CREATE TABLE IF NOT EXISTS meta (k VARCHAR(32) NOT NULL PRIMARY KEY, v BIGINT NOT NULL) $t");
     $db->exec("CREATE TABLE IF NOT EXISTS people (id VARCHAR(40) NOT NULL PRIMARY KEY, data JSON NOT NULL, rev INT NOT NULL DEFAULT 1, upd BIGINT NOT NULL DEFAULT 0) $t");
-    $db->exec("CREATE TABLE IF NOT EXISTS staff (pos INT NOT NULL PRIMARY KEY, name VARCHAR(255) NOT NULL) $t");
+    $db->exec("CREATE TABLE IF NOT EXISTS staff (pos INT NOT NULL PRIMARY KEY, name VARCHAR(255) NOT NULL, letter VARCHAR(16) NOT NULL DEFAULT '') $t");
     $db->exec("CREATE TABLE IF NOT EXISTS days (d DATE NOT NULL PRIMARY KEY, seq TINYINT NOT NULL, data JSON NOT NULL, rev INT NOT NULL DEFAULT 1, upd BIGINT NOT NULL DEFAULT 0) $t");
     $db->exec("CREATE TABLE IF NOT EXISTS attendance (d DATE NOT NULL, person_id VARCHAR(40) NOT NULL, overnight TINYINT NOT NULL DEFAULT 0, person_name VARCHAR(255) NULL, kind VARCHAR(16) NULL, PRIMARY KEY (d, person_id)) $t");
     $db->exec("CREATE TABLE IF NOT EXISTS log (id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY, ts VARCHAR(40), type VARCHAR(16), target VARCHAR(64), field VARCHAR(64), old_v JSON NULL, new_v JSON NULL, d VARCHAR(10)) $t");
@@ -68,6 +68,7 @@ function db_open($host, $port, $name, $user, $pass, $timeout = 5) {
         foreach ($db->query('SELECT id, data FROM people')->fetchAll() as $r) { mirror_person($db, $r['id'], $r['data']); }
         foreach ($db->query('SELECT d, data FROM days')->fetchAll() as $r) { mirror_day($db, $r['d'], $r['data']); }
     }
+    if ($col('staff', 'letter') === 0) { $db->exec("ALTER TABLE staff ADD COLUMN letter VARCHAR(16) NOT NULL DEFAULT ''"); }
     if ($col('users', 'lang') === 0) { $db->exec("ALTER TABLE users ADD COLUMN lang VARCHAR(4) NOT NULL DEFAULT 'ja'"); }
     foreach (['people', 'days', 'users'] as $tb) {
         if ($col($tb, 'upd') === 0) { $db->exec("ALTER TABLE $tb ADD COLUMN upd BIGINT NOT NULL DEFAULT 0"); }
