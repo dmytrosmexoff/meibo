@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="ja" data-page="admin"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Администратор</title>
+<style>
+@font-face{font-family:"MeiboJP";src:url(meibo-jp.woff) format("woff");font-display:block}
+*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+body{margin:0;font:14px system-ui,"Hiragino Sans","Yu Gothic",Meiryo,sans-serif;background:#e9ebef;color:#1c1e21}
+#app{display:flex;height:100vh}#ui{width:390px;flex:none;overflow:auto;padding:12px;background:#fff;border-right:1px solid #ccd}
+#pv{flex:1;overflow:auto;padding:12px}#wrap{margin:0 auto}
+#ui h3{margin:0 0 8px}#ui h4{margin:14px 0 6px;font-size:14px;border-bottom:1px solid #ddd}
+#ui input[type=text],#ui input[type=date],#ui select,#ui textarea{font:inherit;padding:4px 6px;border:1px solid #bbb;border-radius:5px}
+#ui textarea{width:100%}button{font:inherit;padding:4px 9px;border:1px solid #99a;border-radius:5px;background:#f5f6f8;cursor:pointer}
+button.p{background:#2f6fed;color:#fff;border-color:#2f6fed}.row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:4px 0}
+.mut{font-size:12px;color:#667}.pp{display:flex;gap:8px;align-items:center;padding:3px 0}.pp .nm{flex:1}
+.ed{background:#f4f6fb;border:1px solid #dde;border-radius:6px;padding:8px;margin:2px 0 6px}.ed label{margin-right:8px;white-space:nowrap}.ed>div{margin:4px 0}
+.warn{background:#fff3cd;padding:6px;border-radius:5px;margin-bottom:6px}.hi{font-size:12px;border-bottom:1px solid #eee;padding:3px 0}
+.tg{font-size:11px;background:#e6e9f7;padding:0 4px;border-radius:4px}.sb{padding:0 8px}#ui hr{border:0;border-top:1px dashed #bbb;margin:6px 0}
+.sx{border-collapse:collapse;font-size:12px;margin:6px 0}.sx td,.sx th{border:1px solid #ddd;padding:2px 6px;text-align:center}.sx td:first-child{text-align:left}#stb h4{margin:14px 0 4px}.bar{display:flex;align-items:center;gap:6px;font-size:12px}.bar span{width:64px}.bar i{height:9px;background:#8aa7f0;display:block}
+.pp{display:flex;gap:6px;align-items:center;padding:3px 0;flex-wrap:nowrap}.pp .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.md3{display:flex;gap:2px;white-space:nowrap}.md3>*{width:44px;justify-content:center;box-sizing:border-box}.pp.hdr{font-size:12px;color:#445}.pp>input[type=checkbox]{width:16px;margin:0}.pp>button{width:30px;padding:2px 0}.hsp{width:16px;flex:none}.hsp2{width:78px;flex:none}.pp.hdr button{padding:2px 4px}.ck{white-space:nowrap;display:inline-flex;align-items:center;gap:2px}
+.vm{margin:0 0 4px 24px;font-size:13px;color:#445}.vm .ck{margin-right:9px}
+.eg{display:grid;grid-template-columns:60px repeat(3,1fr);gap:5px 6px;align-items:center;margin:8px 0}.eg b{font-weight:600}
+.g6{display:grid;grid-template-columns:repeat(3,1fr);height:var(--r)}
+.g6>i{font-style:normal;display:flex;align-items:center;justify-content:center;border-left:.5pt dashed #999;border-top:.5pt dashed #999;height:calc(var(--r)/2);white-space:nowrap;overflow:visible}
+.g6>i:nth-child(3n+1){border-left:0}.g6>i:nth-child(-n+3){border-top:0}
+.q{display:inline-block;line-height:9pt;font-size:8pt;white-space:nowrap}.q.sm{font-size:8pt}
+.ab{display:flex;align-items:center;font-size:7pt;padding-left:1mm;height:var(--r);white-space:nowrap}.ab span{display:inline-block}
+.oc{display:flex;align-items:center;justify-content:space-around;height:var(--r);font-size:5.5pt;white-space:nowrap}.oc span{display:inline-flex;align-items:center;gap:.4mm}.oc .cb{margin:0;width:1.9mm;height:1.9mm}
+#qprint{display:none}
+#ui{padding-bottom:56px}.err{color:#b00;min-height:1.2em}
+#auth{display:none;position:fixed;inset:0;z-index:50;background:#e9ebef;align-items:center;justify-content:center}#auth .box{background:#fff;padding:22px 26px;border-radius:10px;width:330px;box-shadow:0 4px 18px rgba(0,0,0,.15)}#auth input{width:100%;font:inherit;padding:7px 9px;border:1px solid #bbb;border-radius:6px}
+.cmb{position:fixed;left:12px;bottom:12px;z-index:10;opacity:.9}#admb2{left:118px}
+.adm #app,.adm .cmb{display:none!important}.adm #admw{display:block;position:static;background:#f4f5f7;min-height:100vh;z-index:auto;overflow:visible}.adm #admw .win{max-width:1100px;margin:0 auto;border-radius:0;min-height:100vh}
+#cmw,#admw{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:40;overflow:auto}#cmw .win,#admw .win{background:#fff;max-width:720px;margin:30px auto;padding:16px;border-radius:8px}#admw .win{max-width:900px}
+#sheet,.sheetp{width:408.7mm;position:relative;background:#fff;color:#000;font-family:"MeiboJP","Hiragino Sans","Yu Gothic",Meiryo,"Noto Sans CJK JP",sans-serif;transform-origin:0 0;padding-bottom:2mm}
+.t{border-collapse:collapse;table-layout:fixed;width:367.1mm}
+.t td,.t th{border:.7pt solid #000;padding:0;text-align:center;position:relative;font-weight:400;line-height:1.1}
+.t th{background:#d1d1d1;height:11mm;font-size:9.5pt}.t tr{height:var(--r)}.t tr.z td{background:#dbdbdb}
+.t td{border-top-width:.9pt;border-bottom-width:.9pt}.t tr.sp td{border-top:1.6pt solid #000}.t tr.en td{border-bottom:1.6pt solid #000}
+.h13{font-size:11pt!important}.vt{writing-mode:vertical-rl;text-orientation:upright;font-size:9pt;letter-spacing:.3pt;line-height:1.05;display:inline-block}
+.cn{position:absolute;top:.3mm;font-size:5pt;font-weight:400}
+.bt,.bb{position:absolute;left:0;right:0}.bt{top:0;height:50%;font-size:8pt;border-bottom:.7pt solid #000;display:flex;align-items:center;justify-content:center}
+.bb{bottom:0;height:50%;display:flex;font-size:5pt}.bb i{flex:1;font-style:normal;display:flex;align-items:center;justify-content:center;border-left:.7pt solid #000}.bb i:first-child{flex:0 0 58%;border:0}
+.n{text-align:left!important;padding-left:1.8mm!important;font-size:12pt;white-space:nowrap}.nm{font-size:11pt}.nm.v{font-size:9pt}.st{font-size:10pt}
+.ex{font-size:8pt;text-align:left!important;padding-left:4.2mm!important;white-space:nowrap}.ac{font-size:8pt;white-space:nowrap}
+.nt{text-align:left!important;padding:0 .8mm!important;font-size:9pt;overflow:hidden;white-space:pre-wrap}
+.ntw{height:var(--r);overflow:hidden;line-height:1.1;display:flex;align-items:center;white-space:pre-wrap}
+.v1{position:absolute;bottom:1mm;font-size:5.25pt;font-weight:400}
+.sub,.sub2{display:flex;height:var(--r)}.sub i,.sub2 i{flex:1;border-left:.7pt solid #000;display:flex;align-items:center;justify-content:center;position:relative}
+.sub i:first-child,.sub2 i:first-child{border:0}.sub2 i:first-child{flex:0 0 58%}
+.ov{position:absolute;left:.55mm;right:.55mm;top:.175mm;bottom:.175mm;border:.7pt solid #000;border-radius:50%}
+.ov:after{content:"";position:absolute;left:50%;top:50%;width:.5pt;height:62%;background:#000;transform:translate(-50%,-50%) rotate(27deg)}
+.dl{position:relative;z-index:1;width:6.7mm;height:6.7mm;border:.7pt solid #000;border-radius:50%;font-size:12pt;font-weight:400;display:flex;align-items:center;justify-content:center}
+.md{text-align:left!important;white-space:nowrap;padding-left:.7mm!important}
+.pl{display:inline-block;height:5.3mm;line-height:5.3mm;padding:0 3pt;border-radius:50%;font-size:10pt;margin-right:.7mm;vertical-align:middle}.pl.sm{font-size:7.2pt}
+.pl.m{background:conic-gradient(#F28C8C 25%,transparent 0 50%,#F28C8C 0 75%,transparent 0) 0 0/.64mm .64mm}
+.pl.h{background:conic-gradient(#FFC700 25%,transparent 0 50%,#FFC700 0 75%,transparent 0) 0 0/.64mm .64mm}
+.pl.e{background:conic-gradient(#3373F2 25%,transparent 0 50%,#3373F2 0 75%,transparent 0) 0 0/.64mm .64mm}
+.pl.b{background:conic-gradient(#1AAD52 25%,transparent 0 50%,#1AAD52 0 75%,transparent 0) 0 0/.64mm .64mm;margin-left:1mm}
+.gr{text-align:left!important;font-size:5.5pt;padding-left:1mm!important}.gr div{height:calc(var(--r)/2);display:flex;align-items:center}
+.cb{display:inline-block;width:2.1mm;height:2.1mm;border:.7pt solid #000;margin-left:.9mm}
+.bot{border:.7pt solid #000;border-bottom:0}.bot>div{display:flex;border-bottom:.7pt solid #000;position:relative}
+.lc{display:block;border-right:.7pt solid #000;padding:.3mm 1mm}
+.ft{position:relative;border-top:1.6pt solid #000;width:367.1mm;height:6mm;font-size:8.6pt;white-space:pre}.ft span{position:absolute;top:.8mm}
+.pn{position:absolute;left:367.1mm;top:0;width:41.6mm}.pn>div{position:absolute;left:0;width:100%;white-space:nowrap}.pn .lb{position:absolute;left:0;font-size:8pt}
+@page{size:A3 landscape;margin:5.6mm}
+@page formp{size:A4 landscape;margin:6mm}
+.fpage{page:formp;width:285mm;height:197mm;overflow:hidden;position:relative;break-after:page;page-break-after:always;background:#fff;color:#000;font-family:"MeiboJP","Hiragino Sans","Yu Gothic",Meiryo,"Noto Sans CJK JP",sans-serif}
+.fpage:last-child{break-after:auto;page-break-after:auto}
+.fhd{display:flex;justify-content:space-between;align-items:center;font-size:13pt;height:8mm}
+.ft2{border-collapse:collapse;table-layout:fixed;width:285mm;font-size:8pt}
+.ft2 td,.ft2 th{border:.7pt solid #000;padding:0;text-align:center;font-weight:400;overflow:hidden;white-space:nowrap}
+.ft2 th.nm,.ft2 td.nm{text-align:left;padding-left:1.5mm;font-size:9pt}
+.ft2 th.vt{writing-mode:vertical-rl;text-orientation:upright;font-size:7.5pt;padding:1mm 0}
+.ft2 .ks{font-size:6pt}
+@media print{body{background:#fff}#app{display:block;height:auto}#ui{display:none}#pv{padding:0;overflow:visible}#wrap{width:auto!important;height:285mm!important;overflow:hidden!important;margin:0}#sheet{transform:none!important;zoom:var(--ps,1)!important}#pv{overflow:hidden!important}}
+@media print{#stx,#auth,#cmw,#admw,.cmb{display:none!important}#qprint{display:none}body.pq #app{display:none}body.pq #qprint{display:block}.qpage{height:285mm;overflow:hidden;break-after:page;page-break-after:always}.qpage:last-child{break-after:auto;page-break-after:auto}}
+</style></head><body class="adm">
+<div id="app"><aside id="ui"></aside><main id="pv"><div id="wrap"><div id="sheet"></div></div></main></div>
+<div id="qprint"></div>
+<div id="stx" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9;overflow:auto"><div style="background:#fff;max-width:640px;margin:30px auto;padding:16px;border-radius:8px"><button id="stc" style="float:right">閉じる</button><div id="stb"></div></div></div>
+<div id="auth"></div>
+<button class="cmb" id="cmb" style="display:none">コメント</button>
+<button class="cmb" id="admb2" style="display:none">Админка</button>
+<div id="cmw"></div>
+<div id="admw"></div>
+<script src="i18n.js"></script>
+<script>
+const PAGE=(document.documentElement&&document.documentElement.getAttribute&&document.documentElement.getAttribute('data-page'))||'main';
+const $=s=>document.querySelector(s),WDR=['вс','пн','вт','ср','чт','пт','сб'],WD='日月火水木金土',pad=n=>String(n).padStart(2,'0'),TW=367.1;
+const MED=[['nextMorning','翌朝'],['morning','朝'],['patch','貼り薬'],['noon','昼'],['evening','夕'],['bedtime','寝る前']];
+const U=[52,42,44,200,48,52,104,80,226,242,268,0,190,90,100,64,55,180,114];
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let DB={people:[],days:{},staff:[],counter:0,log:[]},online=true,open=new Set(),old='';
+const n0=new Date();let date=n0.getFullYear()+'-'+pad(n0.getMonth()+1)+'-'+pad(n0.getDate());
+const sp=e=>{e=String(e||'');const i=e.indexOf('\t');return i<0?['',e]:[e.slice(0,i),e.slice(i+1)]},stxt=e=>{const[a,b]=sp(e);return a?a+' '+b:b};
+const pd=s=>{const[a,b,c]=s.split('-').map(Number);return new Date(a,b-1,c)};
+const save=()=>schedule();
+const log=(type,id,f,o,n)=>{DB.log.push({ts:new Date().toISOString(),type,id,f,o,n,date});if(DB.log.length>3000)DB.log.shift()};
+const blank=()=>({present:[],overnight:[],staff:{dawn:[],day:[],night:[]},other:''});
+const day=()=>DB.days[date]||blank();
+const ensure=()=>{let d=DB.days[date];if(!d){d=DB.days[date]={...blank(),staff:{dawn:prevNight(date),day:[],night:[]},seq:0}}return d};
+const setDay=(path,val,quiet)=>{const d=ensure(),[a,b]=path.split('.'),o=b?d[a][b]:d[a];if(b)d[a][b]=val;else d[a]=val;if(path==='staff.dawn')d.dawnManual=true;if(path==='staff.night'){const x=pd(date);x.setDate(x.getDate()+1);const nd=DB.days[dkey(x)];if(nd&&!nd.dawnManual)nd.staff.dawn=val.filter(Boolean)}if(!quiet&&JSON.stringify(o)!==JSON.stringify(val))log('day',date,path,o,val)};
+const S=(p,dt=date)=>{let s=p.v[0].s;for(const v of p.v)if(v.from<=dt)s=v.s;return s};
+const off=(p,dt=date)=>(p.off||[]).some(([a,b])=>dt>=a&&(b==null||dt<b)),vis=(p,dt=date)=>p.v[0].from<=dt&&!off(p,dt);
+const mig=()=>{DB.staff=DB.staff||[];DB.people.forEach(p=>{if(p.del){(p.off=p.off||[]).push([p.del,null]);delete p.del}})};
+const dv=s=>typeof s.delivery==='string'?{[s.delivery]:1}:(s.delivery||{});
+const modeOf=(p,dd,dt)=>{if(!dd.present.includes(p.id))return null;const m=(dd.modes||{})[p.id];if(m)return m;return S(p,dt).kind==='visit'?'visit':(dd.overnight.includes(p.id)?'night':'day')};
+const byOrd=(a,b)=>(a.ord||1e9)-(b.ord||1e9);
+const prevNight=dt=>{const y=pd(dt);y.setDate(y.getDate()-1);const pr=DB.days[dkey(y)];return pr?pr.staff.night.filter(Boolean):[]};
+const curStaff=q=>(q==='dawn'&&!DB.days[date])?prevNight(date):day().staff[q];
+const mealsOf=(p,m,dd,dt)=>{const s=S(p,dt);if(m==='visit')return s.mealsV||(s.kind==='visit'?(s.meals||{}):{});return s.meals||{}};
+function setMode(p,mode,quiet){const d=ensure(),pr=new Set(d.present),ov=new Set(d.overnight),md={...(d.modes||{})};
+ if(mode===null){pr.delete(p.id);ov.delete(p.id);delete md[p.id]}else{pr.add(p.id);md[p.id]=mode;if(mode==='night')ov.add(p.id);else ov.delete(p.id)}
+ setDay('present',[...pr]);setDay('overnight',[...ov]);setDay('modes',md);if(!quiet)upd(1)}
+const def=(name,kind)=>({name,kind,meds:{},note:'',vital:true,meals:kind==='visit'?{}:{b:1,l:1,d:1},delivery:{}});
+const setS=(p,patch,quiet)=>{const cur=S(p),nw={...cur,...patch};if(!quiet)for(const k in patch)if(JSON.stringify(cur[k])!==JSON.stringify(patch[k]))log('person',p.id,k,cur[k],patch[k]);
+ const v=p.v.find(x=>x.from===date);if(v)v.s=nw;else{p.v.push({from:date,s:nw});p.v.sort((a,b)=>a.from<b.from?-1:1)}};
+const addP=(name,kind)=>{const p={id:'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),ord:(Math.max(0,...DB.people.map(x=>x.ord||0))+1),v:[{from:date,s:def(name,kind)}]};DB.people.push(p);log('person',p.id,'add',null,name);return p};
+const pred=()=>{const wd=pd(date).getDay(),past=Object.keys(DB.days).filter(k=>k<date&&pd(k).getDay()===wd&&DB.days[k].present.length).sort().slice(-8),m={};
+ DB.people.forEach(p=>{if(!vis(p))return;const ks=past.filter(k=>vis(p,k)),pr=ks.filter(k=>DB.days[k].present.includes(p.id));
+  if(ks.length&&pr.length/ks.length>=.5){const c={day:0,night:0,visit:0};pr.forEach(k=>c[modeOf(p,DB.days[k],k)]++);const mode=Object.keys(c).sort((a,b)=>c[b]-c[a])[0];m[p.id]={n:pr.length,t:ks.length,mode}}});return m};
+const dkey=x=>x.getFullYear()+'-'+pad(x.getMonth()+1)+'-'+pad(x.getDate());
+function fill(){const m=pred();Object.keys(m).forEach(k=>{const p=DB.people.find(x=>String(x.id)===k);if(p&&!day().present.includes(p.id))setMode(p,m[k].mode,true)});upd(1)}
+let sm=null,armDel=null,hidOpen=false,printed=false,msg='';
+const jd=()=>{const[y,m,d]=date.split('-').map(Number);return y+'年'+m+'月'+d+'日'};
+const fname=()=>jd()+'_利用者名簿';
+addEventListener('beforeprint',()=>{printed=true});addEventListener('afterprint',()=>{document.title='利用者名簿'});
+function saveSheet(){const sh=$('#sheet'),css=document.querySelector('style').textContent;
+ const html='<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><title>'+fname()+'</title><style>'+css+'body{margin:0;background:#fff}</style></head><body><div id="sheet" style="--r:'+sh.style.getPropertyValue('--r')+'">'+sh.innerHTML+'</div><script>onload=function(){setTimeout(function(){print()},300)}<\/script></body></html>';
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([html],{type:'text/html'}));a.download=fname()+'.html';a.click();
+ msg='この画面では印刷できません。ファイル「'+fname()+'.html」をダウンロードしました。ダブルクリックで開くと印刷が始まります。ChromeまたはEdgeで直接開くことをおすすめします。';ui()}
+function statsHTML(){
+ const ym=sm||date.slice(0,7),by=id=>DB.people.find(x=>x.id===id),f1=x=>x.toFixed(1),wdn=k=>WDR[pd(k).getDay()];
+ const one=k=>{const dd=DB.days[k]||blank();let r=0,o=0,v=0,m=[0,0,0],dl=0,md={};
+  dd.present.forEach(id=>{const p=by(id);if(!p)return;const s=S(p,k),mo=modeOf(p,dd,k);if(mo==='visit')v++;else{r++;if(mo==='night')o++}const ml=mealsOf(p,mo,dd,k);['b','l','d'].forEach((x,j)=>{if(ml[x])m[j]++});dl+=['b','l','d'].filter(x=>dv(s)[x]).length;MED.forEach(q=>{if(s.meds[q[0]])md[q[0]]=(md[q[0]]||0)+1})});return{k,r,o,v,m,dl,md}};
+ const calc=y=>Object.keys(DB.days).filter(k=>k.startsWith(y)&&DB.days[k].present.length).sort().map(one);
+ const R=calc(ym),[yy,mm]=ym.split('-').map(Number),Q=calc(mm===1?(yy-1)+'-12':yy+'-'+pad(mm-1));
+ const sm_=(a,f)=>a.reduce((s,x)=>s+f(x),0),T=x=>x.r+x.v,n=R.length,tp=sm_(R,T),tq=sm_(Q,T);
+ const dlt=(a,b)=>b?((a>=b?'+':'')+((a-b)/b*100).toFixed(0)+'%'):'–';
+ let h=`<input type="month" id="sm" value="${ym}">`;
+ if(!n)return h+'<div class="mut" style="margin-top:6px">В этом месяце нет листов</div>';
+ const mx=R.reduce((a,x)=>T(x)>T(a)?x:a),mn=R.reduce((a,x)=>T(x)<T(a)?x:a),c=one(date),sw=R.filter(x=>wdn(x.k)===wdn(date)),avg=(a,f)=>a.length?f1(sm_(a,f)/a.length):'–';
+ const row=(a,b)=>`<tr><td>${a}</td><td>${b}</td></tr>`,tb=(hd,rows)=>`<table class="sx"><tr>${hd.map(x=>`<th>${x}</th>`).join('')}</tr>${rows}</table>`;
+ h+='<table class="sx">'+row('Листов за месяц',n)+row('Всего посещений',`${tp} (${dlt(tp,tq)} к прошлому месяцу)`)+row('В среднем в день',f1(tp/n))
+  +row('Больше всего',`${mx.k.slice(5)} (${wdn(mx.k)}): ${T(mx)}`)+row('Меньше всего',`${mn.k.slice(5)} (${wdn(mn.k)}): ${T(mn)}`)
+  +row('Ночёвок всего / в среднем',`${sm_(R,x=>x.o)} / ${avg(R,x=>x.o)}`)+row('Выездов всего / в среднем',`${sm_(R,x=>x.v)} / ${avg(R,x=>x.v)}`)
+  +row('Завтраки / обеды / ужины (всего)',[0,1,2].map(j=>sm_(R,x=>x.m[j])).join(' / '))+row('Доставка 配 (всего)',sm_(R,x=>x.dl))
+  +row('Людей с заметкой 注意点',DB.people.filter(p=>vis(p)&&S(p).note.trim()).length)+'</table>';
+ h+=`<div class="mut">Выбранный день (${wdn(date)}): приходят ${c.r}, ночуют ${c.o}, выезд ${c.v} · в среднем по таким дням: ${avg(sw,x=>x.r)} / ${avg(sw,x=>x.o)} / ${avg(sw,x=>x.v)}</div>`;
+ h+='<h4>По дням недели</h4>'+tb(['','листов','приходят','ночуют','выезд'],[0,1,2,3,4,5,6].map(i=>{const a=R.filter(x=>pd(x.k).getDay()===i);return `<tr><td>${WDR[i]}</td><td>${a.length}</td><td>${avg(a,x=>x.r)}</td><td>${avg(a,x=>x.o)}</td><td>${avg(a,x=>x.v)}</td></tr>`}).join(''));
+ h+='<h4>Лекарства</h4>'+tb(['','человеко-дней','в день'],MED.map(q=>`<tr><td>${q[1]}</td><td>${sm_(R,x=>x.md[q[0]]||0)}</td><td>${avg(R,x=>x.md[q[0]]||0)}</td></tr>`).join(''));
+ const pc={};R.forEach(x=>DB.days[x.k].present.forEach(id=>{const q=pc[id]=pc[id]||{d:0,o:0,l:''};q.d++;if(DB.days[x.k].overnight.includes(id))q.o++;q.l=x.k}));
+ const pl=Object.keys(pc).map(id=>[by(+id)||by(id),pc[id]]).filter(x=>x[0]).sort((a,b)=>b[1].d-a[1].d);
+ h+='<h4>По людям</h4>'+tb(['Человек','дней','ночей','% листов','последний'],pl.map(([p,q])=>`<tr><td>${esc(S(p,date).name)}</td><td>${q.d}</td><td>${q.o}</td><td>${(q.d/n*100).toFixed(0)}%</td><td>${q.l.slice(5)}</td></tr>`).join(''));
+ const miss=DB.people.filter(p=>vis(p)&&!pc[p.id]);if(miss.length)h+=`<div class="mut">Не было в этом месяце: ${miss.map(p=>esc(S(p).name)).join(', ')}</div>`;
+ const mt=Math.max(...R.map(T),1);
+ h+='<h4>По дням</h4>'+R.map(x=>`<div class="bar"><span>${x.k.slice(5)} ${wdn(x.k)}</span><i style="width:${T(x)/mt*60}%"></i><b>${x.r}/${x.o}/${x.v}</b></div>`).join('')+'<div class="mut">приходят / ночуют / выезд</div>';
+ const sc={};R.forEach(x=>{const st=DB.days[x.k].staff;['dawn','day','night'].forEach((q,i)=>st[q].forEach(nm=>{nm=sp(nm||'')[1].trim();if(nm)(sc[nm]=sc[nm]||[0,0,0])[i]++}))});
+ const sk=Object.keys(sc).sort((a,b)=>sm_(sc[b],x=>x)-sm_(sc[a],x=>x));
+ if(sk.length)h+='<h4>Сотрудники (смен за месяц)</h4>'+tb(['','明','日勤','夜勤','всего'],sk.map(nm=>`<tr><td>${esc(nm)}</td><td>${sc[nm][0]}</td><td>${sc[nm][1]}</td><td>${sc[nm][2]}</td><td>${sm_(sc[nm],x=>x)}</td></tr>`).join(''));
+ return h}
+/* ---- server sync (MySQL through api.php) ---- */
+let snap={},busy=false,dirty=false,pend=false,timer=0,lastTick=0;
+const jp=(a,b)=>fetch('api.php?a='+a,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(r=>{if(r.status===401){ME=null;wipeMem();showAuth();throw 0}if(!r.ok)throw 0;return r.json()});
+const ser=o=>{const c={...o};delete c.rev;return JSON.stringify(c)};
+const normStaff=x=>typeof x==='string'?{name:x,letter:''}:{name:String(x.name||''),letter:String(x.letter||'')};
+const staffNames=()=>DB.staff.map(s=>s.name);
+const staffLetter=n=>{const s=DB.staff.find(x=>x.name===n);return s?s.letter:''};
+function adopt(r){DB.people=r.people.map(x=>{const o=JSON.parse(x.data);o.id=x.id;o.rev=x.rev;return o});DB.staff=(r.staff||[]).map(normStaff);DB.counter=r.counter;DB.days={};
+ r.days.forEach(x=>{const o=JSON.parse(x.data);o.seq=x.seq;o.rev=x.rev;DB.days[x.d]=o});
+ snap={};DB.people.forEach(p=>snap['p'+p.id]=ser(p));Object.keys(DB.days).forEach(k=>snap['d'+k]=ser(DB.days[k]));snap.staff=JSON.stringify(DB.staff);cacheSave()}
+async function reload(){try{const r=await jp('load',{});adopt(r);online=true}catch(e){online=false}ui();render()}
+const schedule=()=>{pend=true;cacheSave();clearTimeout(timer);timer=setTimeout(flush,400)};
+const unsynced=()=>DB.people.some(p=>snap['p'+p.id]!==ser(p))||Object.keys(DB.days).some(k=>snap['d'+k]!==ser(DB.days[k]))||snap.staff!==JSON.stringify(DB.staff)||Object.keys(snap).some(k=>k[0]==='p'&&!DB.people.some(p=>'p'+p.id===k));
+async function flush(){pend=false;if(busy){dirty=true;return}busy=true;
+ try{
+  for(const p of DB.people){const s=ser(p);if(snap['p'+p.id]!==s){const r=await jp('save_person',{id:p.id,rev:p.rev||0,data:s});if(r.conflict){await conflict();return}p.rev=r.rev;snap['p'+p.id]=ser(p)}}
+  for(const k of Object.keys(snap)){if(k[0]==='p'&&!DB.people.some(p=>'p'+p.id===k)){await jp('delete_person',{id:k.slice(1)});delete snap[k]}}
+  const sj=JSON.stringify(DB.staff);if(snap.staff!==sj){await jp('save_staff',{names:DB.staff});snap.staff=sj}
+  for(const k of Object.keys(DB.days)){const d=DB.days[k],s=ser(d);if(snap['d'+k]!==s){const r=await jp('save_day',{d:k,rev:d.rev||0,data:s});if(r.conflict){await conflict();return}d.rev=r.rev;d.seq=r.seq;snap['d'+k]=ser(d);if(k===date)render()}}
+  if(DB.log.length){const e=DB.log.splice(0);try{await jp('log',{entries:e})}catch(x){DB.log.unshift(...e);throw x}}
+  if(!online){online=true;ui()}
+ }catch(e){if(online){online=false;ui()}}
+ finally{busy=false;cacheSave();if(dirty){dirty=false;flush()}}}
+async function conflict(){msg='他の端末で更新されました。最新の状態を読み込みました。';await reload()}
+function poll(){if(busy||dirty||pend)return;if(!online){boot();return}if(!ME)return;if(Date.now()-lastTick>120000){lastTick=Date.now();jp('sync_tick',{}).catch(()=>{})}if(ME.role==='admin')admRefresh();const np=document.querySelector('[data-new="1"]');if(np&&np.value)return;if(unsynced()){flush();return}const a=document.activeElement;if(a&&/INPUT|SELECT|TEXTAREA/.test(a.tagName))return;reload()}
+async function doPrint(){ensure();clearTimeout(timer);await flush();if(busy)await new Promise(r=>setTimeout(r,800));render();msg='';ui();printed=false;document.title=fname();try{window.print()}catch(e){}setTimeout(()=>{if(!printed)saveSheet();document.title='利用者名簿'},1200)}
+/* ---- print queue: up to 15 finished days, saved together as one PDF ---- */
+let Q=[];try{Q=JSON.parse(localStorage.getItem('meibo_q')||'[]')}catch(e){}
+const qsave=()=>{try{localStorage.setItem('meibo_q',JSON.stringify(Q))}catch(e){}};
+const qparse=k=>k.indexOf('|')>0?k.split('|'):['sheet',k];
+const jdOf=dt=>{const[y,m,d]=dt.split('-').map(Number);return y+'年'+m+'月'+d+'日'};
+/* ---- A4 forms: 水分チェック表 and 排泄チェック表, one page per day, printed as a double-sided set ---- */
+function sortMode(m){const all=[...DB.people].sort(byOrd),L=all.filter(p=>vis(p)),on=L.filter(p=>modeOf(p,day(),date)===m),rest=all.filter(p=>!on.includes(p));
+ [...on,...rest].forEach((p,i)=>{p.ord=i+1});save();render();ui()}
+async function setSeq(){const n=parseInt($('#seqN').value,10);if(!(n>=1&&n<=4)){msg='番号は 1〜4 です';ui();return}
+ try{await flush();await jp('set_seq',{d:date,n});await reload();msg='';ui()}catch(e){msg='番号を保存できませんでした';ui()}}
+async function xlsxForms(kind){const n=Math.max(1,Math.min(31,parseInt($('#fdays')?$('#fdays').value:'2',10)||2)),d0=date,days=[];
+ for(let i=0;i<n;i++){const x=pd(d0);x.setDate(x.getDate()+i);const dt=dkey(x);days.push({date:dt,names:attendeesFor(dt,true)})}
+ try{const r=await fetch('api.php?a=forms_xlsx',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind,days})});
+  if(!r.ok){let j={};try{j=await r.json()}catch(e){}msg=j.msg||'Не удалось создать PDF';ui();return}
+  const blob=await r.blob(),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=d0+(kind==='water'?'_水分表.pdf':'_排泄表.pdf');document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},4000)}
+ catch(e){msg='Нет связи с сервером';ui()}}
+function attendeesFor(dt,onlyReg){const d0=date;let dd=DB.days[dt];
+ if(!dd||!dd.present.length){date=dt;const m=pred();date=d0;dd={present:[],overnight:[],modes:{}};Object.keys(m).forEach(k=>{const p=DB.people.find(x=>String(x.id)===k);if(p){dd.present.push(p.id);dd.modes[p.id]=m[k].mode}})}
+ const md2=p=>modeOf(p,dd,dt),P=DB.people.filter(p=>vis(p,dt)&&dd.present.includes(p.id));
+ const reg=P.filter(p=>['day','night'].includes(md2(p))).sort((a,b)=>(md2(b)==='night')-(md2(a)==='night')||byOrd(a,b));
+ const vs=P.filter(p=>md2(p)==='visit').sort(byOrd);
+ return [...reg,...(onlyReg?[]:vs)].map(p=>S(p,dt).name)}
+function formWaterHTML(dt,names){const rows=[...names,...Array(4).fill('')],[y,m,d]=dt.split('-').map(Number),wd=WD[pd(dt).getDay()];
+ const rh=Math.min(9,Math.max(5.5,176/(rows.length+1))),cells=n=>Array(n).fill('<td></td>').join('');
+ const hrs=(a,b)=>[...Array(b-a).keys()].map(i=>`<th>${i+a}</th>`).join('');
+ return `<div class="fpage"><div class="fhd"><b>水分チェック表</b><span>${y}年　${m}月　${d}日　${wd}曜日</span></div><table class="ft2"><colgroup><col style="width:44mm">${Array(13).fill('<col style="width:8mm">').join('')}<col style="width:24mm">${Array(11).fill('<col style="width:8mm">').join('')}<col style="width:25mm"></colgroup><tr style="height:7mm"><th class="nm">氏名</th>${hrs(0,13)}<th>小計</th>${hrs(13,24)}<th>合計</th></tr>${rows.map((n,i)=>`<tr style="height:${rh}mm"><td class="nm">${i+1}　${esc(n)}</td>${cells(13)}<td></td>${cells(11)}<td></td></tr>`).join('')}</table></div>`}
+function formExcrHTML(dt,names){const P=[...names,...Array(4).fill('')],N=P.length*2,w=((285-14)/N).toFixed(2),[y,m,d]=dt.split('-').map(Number),wd=WD[pd(dt).getDay()];
+ const hrs=[...Array(24).keys()].map(h=>`<tr style="height:5.7mm"><td class="nm" style="text-align:center">${h}</td>${Array(N).fill('<td></td>').join('')}</tr>`).join('');
+ return `<div class="fpage"><div class="fhd"><b>排泄チェック表</b><span>${y}年　${m}月　${d}日　${wd}曜日</span></div><table class="ft2"><colgroup><col style="width:14mm">${Array(N).fill(`<col style="width:${w}mm">`).join('')}</colgroup><tr style="height:30mm"><th></th>${P.map((n,i)=>`<th colspan="2" class="vt">${i+1}${n?' '+esc(n):''}</th>`).join('')}</tr><tr style="height:5mm"><th></th>${P.map(()=>'<th class="ks">K</th><th class="ks">H</th>').join('')}</tr>${hrs}<tr style="height:5.7mm"><td style="font-size:8pt">合計</td>${Array(N).fill('<td></td>').join('')}</tr></table></div>`}
+async function printForms(kind){const el=$('#fdays'),n=Math.max(1,Math.min(31,parseInt(el?el.value:'2',10)||2)),d0=date,parts=[];
+ for(let i=0;i<n;i++){const x=pd(d0);x.setDate(x.getDate()+i);const dt=dkey(x),names=attendeesFor(dt);parts.push(kind==='water'?formWaterHTML(dt,names):formExcrHTML(dt,names))}
+ const box=$('#qprint');box.innerHTML=parts.join('');document.body.classList.add('pq');
+ document.title=jdOf(d0)+(kind==='water'?'_水分チェック表':'_排泄チェック表');
+ try{window.print()}catch(e){}
+ setTimeout(()=>{document.body.classList.remove('pq');box.innerHTML='';document.title='利用者名簿'},60000)}
+async function printQueue(){const items=[...Q].map(qparse).sort((x,y)=>x[1]<y[1]?-1:x[1]>y[1]?1:(x[0]<y[0]?-1:x[0]>y[0]?1:0));if(!items.length)return;
+ if(typeof flush==='function'){clearTimeout(timer);await flush();if(busy)await new Promise(r=>setTimeout(r,800))}
+ const box=$('#qprint'),keep=date;box.innerHTML='';box.style.cssText='display:block;position:absolute;left:-30000px;top:0;visibility:hidden';
+ items.forEach(([tp,dt])=>{
+  if(tp==='sheet'){date=dt;const o=sheetInner(),pg=document.createElement('div');pg.className='qpage';pg.innerHTML='<div class="sheetp" style="--r:'+o.r+'mm">'+o.html+'</div>';box.appendChild(pg);place(pg,o);const sp_=pg.firstChild||{style:{},offsetHeight:0},k_=Math.min(1,284/Math.max(sp_.offsetHeight*25.4/96,o.pb));sp_.style.zoom=String(k_)}
+  else{const names=attendeesFor(dt,true),pg=document.createElement('div');pg.innerHTML=tp==='water'?formWaterHTML(dt,names):formExcrHTML(dt,names);box.appendChild(pg)}
+ });
+ date=keep;box.style.cssText='';document.body.classList.add('pq');printed=false;
+ const f0=items[0][1],f1=items[items.length-1][1];
+ document.title=(f0===f1?jdOf(f0):jdOf(f0)+'〜'+jdOf(f1))+'_利用者名簿';
+ try{window.print()}catch(e){}
+ setTimeout(()=>{if(!printed){document.body.classList.remove('pq');box.innerHTML='';document.title='利用者名簿';msg='この画面では印刷できません。ChromeまたはEdgeで直接開いてください。';ui()}},1200)}
+addEventListener('afterprint',()=>{document.body.classList.remove('pq');const b=$('#qprint');if(b)b.innerHTML=''});
+/* ---- accounts, comments for the developer, administrator ---- */
+let FIRST=false,ME=null,authMode='login',authMsg='',ADM={users:[],comments:[],tab:'s',pending:0,arm:'',link:''};
+const AUTHERR={wrong:'ユーザー名またはパスワードが違います。',pending:'管理者の承認待ちです。承認されるとログインできます。',blocked:'このアカウントは利用できません。',exists:'このユーザー名は既に使われています。',weak:'パスワードは8文字以上にしてください。',name:'ユーザー名は2〜32文字で、空白は使えません。',locked:'試行回数が多すぎます。10分後にもう一度お試しください。'};
+function showAuth(){const a=$('#auth'),reg=authMode==='register';a.style.display='flex';$('#cmb').style.display='none';$('#admb2').style.display='none';$('#admw').style.display='none';$('#cmw').style.display='none';
+ a.innerHTML=`<div class="box"><h3>利用者名簿</h3><p><input type="text" id="au" placeholder="ユーザー名" autocomplete="username"></p><p><input type="password" id="ap" placeholder="パスワード（8文字以上）" autocomplete="${reg?'new-password':'current-password'}"></p>${reg?'<p><input type="password" id="ap2" placeholder="パスワード（確認）" autocomplete="new-password"></p>':''}${(authMode==='register'&&FIRST)?'<p class="sm">Необязательно: загрузите готовый файл базы (.sql), например экспорт другой копии. Затем зарегистрируйтесь.</p><p><input type="file" id="imf" accept=".sql"> <button id="imb">Загрузить базу</button></p>':''}<p class="err">${esc(authMsg)}</p><p><button class="p" id="ago">${reg?'登録':'ログイン'}</button> <a href="#" id="asw">${reg?'ログインへ':'新規登録'}</a></p></div>`}
+async function authGo(){const u=$('#au').value.trim(),p=$('#ap').value,reg=authMode==='register';
+ if(reg&&p!==$('#ap2').value){authMsg='パスワードが一致しません。';showAuth();return}
+ try{const r=await fetch('api.php?a='+(reg?'register':'login'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({u,p})}).then(x=>x.json());
+  if(r.ok&&reg&&r.status==='pending'){authMode='login';authMsg='登録しました。管理者が承認するとログインできます。';showAuth();return}
+  if(r.ok){authMsg='';await boot();return}
+  authMsg=AUTHERR[r.error]||'エラーが発生しました。'}catch(e){authMsg='サーバーに接続できません。'}
+ showAuth()}
+/* ---- every edit is kept in this browser until it has been synchronised with the database ---- */
+const CK='meibo_cache';
+function cacheSave(){if(!ME)return;try{localStorage.setItem(CK,JSON.stringify({DB:DB,snap:snap,me:ME}))}catch(e){}}
+function cacheInit(){try{const c=JSON.parse(localStorage.getItem(CK)||'null');if(c&&c.DB&&c.DB.people){DB=c.DB;DB.staff=(DB.staff||[]).map(normStaff);if(!DB.log)DB.log=[];snap=c.snap||{};return c.me||null}}catch(e){}return null}
+function wipeMem(){DB={people:[],days:{},staff:[],counter:0,log:[]};snap={}}
+function showBtns(){$('#cmb').style.display=ME?'block':'none';$('#admb2').style.display=ME&&ME.role==='admin'?'block':'none'}
+async function boot(){
+ const cm=ME?null:cacheInit();
+ let r=null;try{r=await fetch('api.php?a=me',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})}catch(e){}
+ if(r&&r.status===401){wipeMem();try{const st=await fetch('api.php?a=status',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}).then(x=>x.json());FIRST=st.users===0;if(st.users===0){authMode='register';authMsg='最初に登録したアカウントが管理者になります。'}}catch(e){}showAuth();return}
+ if(r&&r.status===503){let j={};try{j=await r.json()}catch(e){}if(j.error==='setup'){wipeMem();location.href='setup.php';return}r=null}
+ if(!r||!r.ok){online=false;if(cm&&!ME)ME=cm;$('#auth').style.display='none';showBtns();ui();render();return}
+ let j;try{j=await r.json()}catch(e){online=false;ui();render();return}
+ ME=j.user;LANG=(ME&&ME.lang)||'ja';online=true;$('#auth').style.display='none';showBtns();
+ if(PAGE==='admin'){if(ME.role!=='admin'){location.href='index.html';return}await reload();await admOpen('s');return}
+ if(unsynced())await flush();else await reload();
+ cacheSave();if(ME.role==='admin')admRefresh()}
+async function logout(){try{if(online&&ME&&unsynced())await flush()}catch(e){}
+ const keep=unsynced();try{await jp('logout',{})}catch(e){}
+ if(!keep){try{localStorage.removeItem(CK)}catch(e){}}else{try{const c=JSON.parse(localStorage.getItem(CK)||'null');if(c){c.me=null;localStorage.setItem(CK,JSON.stringify(c))}}catch(e){}}
+ ME=null;ADM={users:[],comments:[],tab:'s',pending:0,arm:'',link:''};wipeMem();authMode='login';authMsg='';showAuth();ui();render()}
+async function admRefresh(){try{const r=await jp('users_list',{});ADM.users=r.users;ADM.pending=r.users.filter(x=>x.status==='pending').length;const b=$('#admb2');if(b)b.textContent='Админка'+(ADM.pending?' ('+ADM.pending+')':'')}catch(e){}}
+async function admOpen(tab){ADM.tab=tab||ADM.tab||'s';await admRefresh();if(ADM.tab==='d')await admLoadDb();try{ADM.comments=(await jp('comments_list',{})).comments}catch(e){}try{ADM.link=(await jp('admin_link',{})).url}catch(e){ADM.link=''}admDraw();$('#admw').style.display='block'}
+const fmtT=ms=>ms?new Date(ms).toLocaleString('ru'):'нет данных';
+async function admLoadDb(){try{ADM.db=await jp('db_info',{})}catch(e){ADM.db=null}}
+function dbTab(){const d=ADM.db;if(!d)return '<div class="mut">Загрузка…</div>';const a=d.a,b=d.b,rp=d.last_sync_report;
+ let h=`<h4>Встроенная база данных (создаёт само приложение)</h4><div class="mut">Работает. MySQL ${esc(a.version)}, база ${esc(a.db)}, хост ${esc(a.host)}<br>людей: ${a.people}, дней: ${a.days}, аккаунтов: ${a.users} · последнее изменение: ${fmtT(a.newest)}</div><h4>Ручное подключение (вторая база данных)</h4>`;
+ if(b.enabled){const s=b.stats;
+  h+=`<div>${esc(b.host)}:${esc(b.port)} · база ${esc(b.name)} · логин ${esc(b.user)}</div><div class="${b.ok?'mut':'err'}">${b.ok?`Работает. MySQL ${esc(s.version)}<br>людей: ${s.people}, дней: ${s.days}, аккаунтов: ${s.users} · последнее изменение: ${fmtT(s.newest)}`:'Нет связи: '+esc(b.error||'')}</div>`;
+  h+=`<div class="mut" style="margin-top:6px">Последняя синхронизация: ${d.last_sync_at?fmtT(d.last_sync_at*1000):'ещё не было'}${rp?` · в ручную базу: ${rp.to_b}, во встроенную: ${rp.to_a}, удалено: ${rp.deleted}, история: ${rp.history}`:''}</div>${d.last_error?`<div class="err">Ошибка последней синхронизации: ${esc(d.last_error)}</div>`:''}`;
+  h+=`<p><button class="p" id="b2sync">Синхронизировать сейчас</button> <button id="b2off">Отключить</button> <button id="cpAB">Встроенная → подключённая</button> <button id="cpBA">Подключённая → встроенная</button> <span id="b2msg" class="mut"></span></p>`}
+ else h+=`<p class="mut">Не подключена. Введите данные второй базы MySQL (например, на другом сервере) и нажмите «Проверить подключение».</p><div class="eg" style="grid-template-columns:90px 1fr"><b>Хост</b><input type="text" id="b2h" value="localhost"><b>Порт</b><input type="text" id="b2p" value="3306"><b>Имя базы</b><input type="text" id="b2n" value="meibo"><b>Логин</b><input type="text" id="b2u"><b>Пароль</b><input type="password" id="b2w" autocomplete="off"></div><p><button id="b2test">Проверить подключение</button> <button class="p" id="b2save">Подключить и синхронизировать</button> <span id="b2msg" class="mut"></span></p>`;
+ h+=`<p class="mut">Синхронизация идёт в обе стороны: запись, изменённая позже, копируется туда, где информация старее (люди, листы дней, список сотрудников, аккаунты, комментарии, история изменений). Автоматически каждые 2 минуты.</p>`;
+ if(ADM.link)h+=`<p><a href="${esc(ADM.link)}" target="_blank" rel="noopener noreferrer">Открыть страницу просмотра таблиц (только чтение, свой пароль)</a></p>`;
+ return h}
+let admMsg='';
+function admStaff(){const L=DB.staff;
+ let h='<p class="mut">Работники для смен. Буква обязательна: при выборе работника в листе она подставляется сама и может быть изменена в листе только на этот день. Удалённый работник остаётся в уже сохранённых листах.</p>';
+ h+='<table class="sx"><tr><th>№</th><th>Имя</th><th>Буква смены</th><th></th></tr>'+L.map((s,i)=>`<tr><td>${i+1}</td><td>${esc(s.name)}</td><td><input type="text" size="8" maxlength="16" data-stl="${i}" value="${esc(s.letter)}" placeholder="буква"></td><td><button data-stdel="${i}">Удалить</button></td></tr>`).join('')+'</table>';
+ h+=`<div class="row"><input type="text" id="stn" placeholder="Имя работника" size="18"><input type="text" id="stl" placeholder="Буква (обязательно)" size="12" maxlength="16"><button id="stadd" class="p" ${L.length>=25?'disabled':''}>＋ Добавить</button><span class="mut">${L.length} / 25</span></div>`;
+ if(admMsg)h+=`<div class="err">${esc(admMsg)}</div>`;
+ return h}
+const today_=()=>dkey(new Date());
+function normOrd(){const L=[...DB.people].sort(byOrd);L.forEach((p,i)=>{p.ord=i+1});return L}
+function moveP(id,to){const L=normOrd(),i=L.findIndex(p=>String(p.id)===String(id));if(i<0)return;const[p]=L.splice(i,1);L.splice(Math.max(0,Math.min(L.length,to)),0,p);L.forEach((q,k)=>{q.ord=k+1});save();render();ui();admDraw()}
+function admForm(p){const s=S(p,today_()),id=`data-id="${p.id}"`,M3=[['b','朝'],['l','昼'],['d','夕']],cb=(a,k,on,l)=>`<label class="ck"><input type="checkbox" data-a="${a}" data-k="${k}" ${id} ${on?'checked':''}>${l}</label>`;
+ return `<div class="ed"><div class="row"><input type="text" data-a="f" data-k="name" ${id} value="${esc(s.name)}"><select data-a="f" data-k="kind" ${id}><option value="regular" ${s.kind==='regular'?'selected':''}>通い/泊まり</option><option value="visit" ${s.kind==='visit'?'selected':''}>訪問</option></select></div>
+<div class="eg"><b>食事</b>${M3.map(m=>cb('ml',m[0],s.meals[m[0]],m[1])).join('')}<b>訪問食</b>${M3.map(m=>cb('mv',m[0],(s.mealsV||{})[m[0]],m[1])).join('')}<b>配</b>${M3.map(m=>cb('dv',m[0],dv(s)[m[0]],m[1])).join('')}<b>服薬</b>${[['morning','朝'],['noon','昼'],['evening','夕']].map(m=>cb('md',m[0],s.meds[m[0]],m[1])).join('')}<b></b>${[['nextMorning','翌朝'],['patch','貼り薬'],['bedtime','寝る前']].map(m=>cb('md',m[0],s.meds[m[0]],m[1])).join('')}<b>臨薬</b>${cb('md','abx',s.meds.abx,'抗生物質')}<span></span><span></span></div>
+<div>注意点:<textarea rows="2" data-a="f" data-k="note" placeholder="重要な情報" ${id}>${esc(s.note)}</textarea></div></div>`}
+function admPeople(){const L=[...DB.people].sort(byOrd);
+ let h='<p class="mut">Порядок в списке и на листе: меняйте номер или стрелки. Настройки (еда, лекарства, доставка, заметка) действуют с сегодняшней даты.</p><table class="sx"><tr><th>№</th><th></th><th>Имя</th><th>Тип по умолчанию</th><th>Сейчас</th><th></th></tr>';
+ L.forEach((p,i)=>{const s=S(p,today_());h+=`<tr><td><input type="text" size="3" data-apos="${p.id}" value="${i+1}"></td><td><button data-aup="${p.id}">↑</button><button data-adn="${p.id}">↓</button></td><td>${esc(s.name)}</td><td>${s.kind==='visit'?'訪問':'通い/泊まり'}</td><td>${vis(p,today_())?'в списке':'отсутствует'}</td><td><button data-aed="${p.id}">${ADM.pedit===String(p.id)?'Свернуть':'Настройки'}</button></td></tr>`;
+  if(ADM.pedit===String(p.id))h+=`<tr><td colspan="6">${admForm(p)}</td></tr>`});
+ return h+'</table>'}
+function admDraw(){const t=ADM.tab,ar=(id,op,l)=>`<button data-adm="${op}" data-id="${id}">${ADM.arm===id+':'+op?'Точно?':l}</button>`,tb=(k,l)=>`<button data-tab="${k}" ${t===k?'class="p"':''}>${l}</button>`;
+ let h=`<a href="index.html" style="float:right">← К листу</a><h3>Администратор</h3><div class="row">${tb('s','Статистика')}${tb('p','Люди')}${tb('w','Работники')}${tb('u','Аккаунты'+(ADM.pending?' (ждут: '+ADM.pending+')':''))}${tb('c','Комментарии ('+ADM.comments.length+')')}${tb('d','База данных')}</div>`;
+ if(t==='s')h+=statsHTML();else if(t==='p')h+=admPeople();else if(t==='w')h+=admStaff();
+ else if(t==='u')h+='<table class="sx"><tr><th>Пользователь</th><th>Роль</th><th>Статус</th><th></th></tr>'+ADM.users.map(u=>`<tr><td>${esc(u.username)}</td><td>${u.role==='admin'?'администратор':'пользователь'}</td><td><select data-ulang="${u.id}"><option value="ja" ${u.lang!=='ru'?'selected':''}>日本語</option><option value="ru" ${u.lang==='ru'?'selected':''}>Русский</option></select></td><td>${{pending:'ждёт подтверждения',active:'активен',blocked:'остановлен'}[u.status]||esc(u.status)}</td><td>${u.role==='admin'?'':`${u.status!=='active'?ar(u.id,'approve','Подтвердить'):''} ${u.status==='active'?ar(u.id,'block','Остановить'):''} ${ar(u.id,'delete','Удалить')}`}</td></tr>`).join('')+'</table>';
+ else if(t==='c')h+=ADM.comments.length?ADM.comments.map(c=>`<div class="hi"><b>${esc(c.username)}</b> <span class="mut">${esc(c.created_at)}</span> ${ar(c.id,'cdel','Удалить')}<pre style="white-space:pre-wrap;margin:4px 0">${esc(c.body)}</pre></div>`).join(''):'<div class="mut">Комментариев нет</div>';
+ else h+=dbTab();
+ $('#admw').innerHTML='<div class="win">'+h+'</div>'}
+function cmOpen(){const w=$('#cmw');w.style.display='block';w.innerHTML='<div class="win"><h3>開発者へのコメント</h3><p class="mut">ご意見・不具合などを自由に書いてください。送信した内容は画面には表示されません。</p><textarea id="cmt" rows="6" style="width:100%"></textarea><p><button class="p" id="cms">送信</button> <button id="cmx">閉じる</button> <span id="cmr" class="mut"></span></p></div>'}
+function sheetInner(){
+ const d=day(),P=DB.people.filter(p=>vis(p)),md=p=>modeOf(p,d,date),ov=p=>md(p)==='night';
+ const grpOf=p=>{if(md(p)==='night')return 1;const m=mealsOf(p,md(p),d,date);if(m.b)return 2;if(m.l&&!m.d)return 2;if(m.d||m.l)return 3;return 4};
+ const reg=P.filter(p=>['day','night'].includes(md(p))).sort((a,b)=>grpOf(a)-grpOf(b)||byOrd(a,b)),vs=P.filter(p=>md(p)==='visit').sort(byOrd);
+ const bl1=reg.length>16?3:5,N=reg.length+vs.length+bl1+2,AV=264,BF=[9.2,7.1,8.5,7.8],BM=[6,4.5,8.5,4.5],sm_=a=>a.reduce((x,y)=>x+y,0);let r=7.76,bh=BF.slice();
+ if(N*r+sm_(BF)>AV){const room=AV-N*r;if(room>=sm_(BM)){const kk=(room-sm_(BM))/(sm_(BF)-sm_(BM));bh=BF.map((v,i)=>BM[i]+(v-BM[i])*kk)}else{bh=BM.slice();r=Math.max(5.2,(AV-sm_(BM))/N)}}
+ const hasRin=[...reg,...vs].some(p=>S(p).meds&&S(p).meds.abx),U2=U.slice();U2[13]=hasRin?90:24;{const L=Math.max(0,...[...reg,...vs].map(p=>(S(p).note||'').length));U2[8]=Math.min(440,Math.max(170,60+L*14));}const f=(TW-r)/U2.reduce((a,b)=>a+b,0),W=U2.map(u=>u?u*f:r);
+ const X=[0];W.forEach(w=>X.push(X[X.length-1]+w));
+ const cnt=[0,0,0];[...reg,...vs].forEach(p=>['b','l','d'].forEach((k,j)=>{if(mealsOf(p,md(p),d,date)[k])cnt[j]++}));
+ const nd=reg.length,nn=reg.filter(p=>md(p)==='night').length;
+ const vt=t=>`<th><span class="vt">${t}</span></th>`,h=(t,c)=>`<th class="${c||''}">${t}</th>`;
+ const hd=[vt('帳面<br>記入'),vt('利用'),vt('番号'),h('利用者氏名'),vt('泊まり'),vt('送迎時<br>訪問等'),h('最終排便'),h('排便－<br>日数'),h('注意点'),h('バイタル'),
+  `<th class="h13">食事</th>`,vt('おやつ'),h('服薬','h13'),(hasRin?h('臨薬','h13'):vt('臨薬')),h('口腔<br>ケア'),h('整容','h13'),vt('入浴'),h('アクト'),
+  `<th><div class="bt">請求関係</div><div class="bb"><i>電気器具</i><i>洗濯</i></div></th>`].join('');
+ const T=(x,c)=>`<td${c?` class="${c}"`:''}>${x}</td>`,E=T(''),M='<td colspan="2"></td>';
+ const mc=(s,ml)=>`<div class="sub">${['b','l','d'].map(k=>`<i>${s&&ml&&ml[k]?'<b class="ov"></b>':''}${s&&dv(s)[k]?'<b class="dl">配</b>':''}</i>`).join('')}</div>`;
+ const bill=T('<div class="sub2"><i></i><i></i></div>');
+ const SL=[['morning','朝','m'],['noon','昼','h'],['evening','夕','e'],['nextMorning','翌朝','o1'],['patch','貼り薬','o2 sm'],['bedtime','寝る前','b']];
+ const medsCell=s=>T('<div class="g6">'+SL.map(q=>`<i>${s&&s.meds&&s.meds[q[0]]?`<span class="q ${q[2]}">${q[1]}</span>`:''}</i>`).join('')+'</div>');
+ const abx=s=>T(s&&s.meds&&s.meds.abx?'<div class="ab"><span>抗生物質</span></div>':''),ocell=()=>T('<div class="oc"><span>朝<i class="cb"></i></span><span>昼<i class="cb"></i></span><span>夕<i class="cb"></i></span></div>');
+ const vit=s=>1?'<b class="v1" style="left:3%">BP</b><b class="v1" style="left:47%">P</b><b class="v1" style="left:67.2%">KT</b>':'';
+ const rows=[];let i=0;const z=()=>i++%2?'':'z';
+ reg.forEach((p,n)=>{const s=S(p);rows.push(`<tr class="${z()}">`+E+E+T(n+1,'nm')+T(esc(s.name),'n')+T(ov(p)?'○':'','st')+E+E+E+T('<div class="ntw">'+esc(s.note)+'</div>','nt')+T(vit(s))+T(mc(s,mealsOf(p,md(p),d,date)))+E+medsCell(s)+abx(s)+ocell()+T('<div>髭剃り<i class="cb"></i></div><div>爪切り<i class="cb"></i></div>','gr')+E+T('1・2・3・4・5・6・7','ac')+bill+'</tr>')});
+ for(let k=0;k<bl1;k++)rows.push(`<tr class="${z()}">`+E.repeat(10)+T(mc(null))+E+medsCell(null)+E.repeat(5)+bill+'</tr>');
+ vs.forEach(p=>{const s=S(p);rows.push(`<tr class="${z()}">`+E+E+T('訪問','nm v')+T(esc(s.name),'n')+M+T('／（　）','ex')+E+T('<div class="ntw">'+esc(s.note)+'</div>','nt')+T(vit(s))+T(mc(s,mealsOf(p,md(p),d,date)))+E+medsCell(s)+abx(s)+E+E+E+E+bill+'</tr>')});
+ for(let k=0;k<2;k++)rows.push(`<tr class="${z()}">`+E.repeat(4)+M+E.repeat(4)+T(mc(null))+E+medsCell(null)+E.repeat(5)+bill+'</tr>');
+ const b2=reg.length+bl1;rows[b2]=rows[b2].replace('<tr class="','<tr class="sp ');rows[rows.length-1]=rows[rows.length-1].replace('<tr class="','<tr class="en ');
+ const st=d.staff,dg=d.seq||DB.counter%4+1,dn=DB.days[date]?st.dawn:prevNight(date);
+ const fs=(t,tg)=>{let em=0;for(const c of t)em+=c.charCodeAt(0)>255?1:.55;return Math.min(tg,84/Math.max(em,.5))};
+ const top=i=>`top:calc(11mm + ${i}*var(--r));height:var(--r);line-height:var(--r)`;
+ const pr=(i,lab,t,tg)=>`<div style="${top(i)}">${lab?`<span class="lb">${lab}</span>`:''}<span style="position:absolute;left:${lab?9.2:8.5}mm;font-size:${fs(t||'',tg)}pt">${esc(t||'')}</span></div>`;
+ const TMY='タイミー';
+ const exp=it=>it.t===TMY?[{t:'',lab:it.lab,sz:it.sz},{t:'',lab:'',sz:it.sz},{t:'',lab:'',sz:it.sz}]:[it];
+ const dyn=st.day.filter(Boolean);
+ let rw=0,pn=`<div style="top:0;height:11mm;line-height:11mm;left:9.2mm;width:auto;font-size:22pt">${dg}</div>`;
+ const put=it=>{pn+=pr(rw,it.lab,it.t,it.sz);rw++};
+ [{t:dn[0],lab:'明',sz:22},{t:dn[1],lab:'',sz:22}].forEach(put);
+ put({t:'',lab:'日勤',sz:16});
+ dyn.forEach(x=>exp({t:stxt(x),lab:'',sz:16}).forEach(put));
+ rw+=2;
+ [{t:st.night[0],lab:'夜勤',sz:22},{t:st.night[1],lab:'',sz:22}].forEach(put);
+ rw+=1;
+ pn+=`<div style="${top(rw)}"><span class="lb" style="font-size:9pt">アクト</span></div>`;
+ ['①朝レク','②体操','③台所作業','④洗濯物','⑤午後レク','⑥食器拭き','⑦リハビリ'].forEach((t,j)=>pn+=`<div style="${top(rw+1+j)}"><span style="position:absolute;left:.7mm;font-size:10pt">${t}</span></div>`);
+ const [y,m,dd]=date.split('-').map(Number),wd=WD[pd(date).getDay()],lw=`width:${X[4]-X[2]}mm`;
+ const bot=`<div class="bot" style="margin-left:${X[2]}mm;width:${TW-X[2]}mm"><div style="height:${bh[0]}mm"><span class="lc" style="${lw};font-size:9pt">その他${bh[0]>=8?'<br>':''}<span style="font-size:7pt">（往診、訪リハなど）</span></span></div><div style="height:${bh[1]}mm"><span class="lc" style="${lw};font-size:12pt;line-height:6.4mm">${esc(d.other)}</span></div><div style="height:${bh[2]}mm"><span style="position:absolute;left:${X[11]-13.4-X[2]}mm;transform:translateX(-50%);top:1.5mm;font-size:14pt;white-space:pre">${y}年　　${m}月　　${dd}日　　（${wd}）</span></div><div style="height:${bh[3]}mm"></div></div>`;
+ const ftr=`<div class="ft"><span id="ftt" style="left:0">小規模多機能型居宅介護事業所　北本庄　利用者名簿（登録者：　　　名、通い：${nd}名、泊まり：${nn}名、訪問：　　　名、支援　　名、利用者：（朝食(${cnt[0]})　　　名、昼食(${cnt[1]})　　　、夕食(${cnt[2]})　　　名）おやつ${'　'.repeat(10)}名）</span><span id="d1">昼配食：</span><span id="d2">夕配食：</span></div>`;
+ return {html:`<table class="t"><colgroup>${W.map(w=>`<col style="width:${w}mm">`).join('')}</colgroup><thead><tr>${hd}</tr></thead><tbody>${rows.join('')}</tbody></table>${bot}${ftr}<div class="pn">${pn}</div>`,r,x15:X[15],pb:11+(14+n)*r};
+}
+function place(el,o){const l=Math.max(o.x15-2.1,el.querySelector('#ftt').offsetWidth*25.4/96+4.2);el.querySelector('#d1').style.left=l+'mm';el.querySelector('#d2').style.left=(l+31.8)+'mm'}
+function render(){const o=sheetInner(),sh=$('#sheet');sh.style.setProperty('--r',o.r+'mm');sh.innerHTML=o.html;place(sh,o);sh.style.setProperty('--ps',Math.min(1,284/Math.max(sh.offsetHeight*25.4/96,o.pb)));fit()}
+function fit(){const s=$('#sheet'),w=$('#wrap'),k=Math.min(1,($('#pv').clientWidth-24)/s.offsetWidth);s.style.transform=`scale(${k})`;w.style.width=s.offsetWidth*k+'px';w.style.height=s.offsetHeight*k+'px'}
+function ui(){
+ {const z=DB.days[date];if(z&&z.staff.day.includes(''))z.staff.day=z.staff.day.filter(Boolean)}
+ const PR=pred(),d=day(),P=DB.people.filter(p=>vis(p)),st=d.staff,g=k=>P.filter(p=>S(p).kind===k).sort(byOrd);
+ const person=p=>{const s=S(p),mo=modeOf(p,d,date),id=`data-id="${p.id}"`;
+  const cb=(a,k,on,label)=>`<label class="ck"><input type="checkbox" data-a="${a}" ${k?`data-k="${k}"`:''} ${id} ${on?'checked':''}>${label}</label>`;
+  const M3=[['b','朝'],['l','昼'],['d','夕']];
+  let h=`<div class="pp"><input type="checkbox" data-a="pr" ${id} ${mo?'checked':''}><span class="nm">${s.kind==='visit'?'<span class="tg">訪問</span> ':''}<span data-nm="${p.id}">${esc(s.name)}</span>${PR[p.id]?` <span class="mut" title="この曜日はいつも来ています">★</span>`:''}</span><span class="md3">${cb('dy','',mo==='day','通')}${cb('ov','',mo==='night','泊')}${cb('vd','',mo==='visit','訪')}</span><button data-a="ed" ${id}>✎</button><button data-a="del" ${id} title="欠席リストへ">✕</button></div>`;
+  if(open.has(p.id))h+=`<div class="ed"><div class="row"><input type="text" data-a="f" data-k="name" ${id} value="${esc(s.name)}"><select data-a="f" data-k="kind" ${id}><option value="regular" ${s.kind==='regular'?'selected':''}>通い/泊まり</option><option value="visit" ${s.kind==='visit'?'selected':''}>訪問</option></select></div>
+  <div class="eg"><b>食事</b>${M3.map(m=>cb('ml',m[0],s.meals[m[0]],m[1])).join('')}<b>訪問食</b>${M3.map(m=>cb('mv',m[0],(s.mealsV||{})[m[0]],m[1])).join('')}<b>配</b>${M3.map(m=>cb('dv',m[0],dv(s)[m[0]],m[1])).join('')}<b>服薬</b>${[['morning','朝'],['noon','昼'],['evening','夕']].map(m=>cb('md',m[0],s.meds[m[0]],m[1])).join('')}<b></b>${[['nextMorning','翌朝'],['patch','貼り薬'],['bedtime','寝る前']].map(m=>cb('md',m[0],s.meds[m[0]],m[1])).join('')}<b>臨薬</b>${cb('md','abx',s.meds.abx,'抗生物質')}<span></span><span></span></div>
+  <div>注意点:<textarea rows="2" data-a="f" data-k="note" placeholder="重要な情報" ${id}>${esc(s.note)}</textarea></div></div>`;
+  return h};
+ const RS=staffNames(),TK=new Set([...(DB.days[date]?st.dawn:prevNight(date)),...st.day,...st.night].map(e=>sp(String(e))[1]).filter(Boolean)),opts=(v,role)=>'<option value=""></option>'+(v&&v!=='タイミー'&&!RS.includes(v)?`<option selected>${esc(v)}</option>`:'')+RS.filter(n=>n===v||!TK.has(n)).map(n=>`<option ${n===v?'selected':''}>${esc(n)}</option>`).join('')+(role==='day'?`<option ${v==='タイミー'?'selected':''}>タイミー</option>`:'');
+ const inp=(p,i,v)=>`<select data-a="sf" data-p="${p}" data-i="${i}">${opts(v,p)}</select>`;
+ const dayRow=(j,e,nw)=>{const[pr,nm]=sp(e);return `<div class="row"><input type="text" data-a="sf" data-p="day" data-i="${j}" data-f="pre" ${nw?'data-new="1"':''} value="${esc(pr)}" size="5" maxlength="10" placeholder="AH"><select data-a="sf" data-p="day" data-i="${j}" data-f="name">${opts(nm,'day')}</select>${nw?'':`<button data-a="dd" data-i="${j}">✕</button>`}</div>`};
+ const SD={dawn:DB.days[date]?st.dawn:prevNight(date),night:st.night};
+ const two=q=>SD[q].length>1?inp(q,1,SD[q][1])+`<button class="sb" data-a="rm" data-p="${q}">✕</button>`:`<button class="sb" data-a="ad" data-p="${q}" title="2人目を追加">+</button>`;
+ let h=(msg?'<div class="warn">'+msg+'</div>':'')+(online?'':'<div class="warn">サーバーに接続できません。変更はまだ保存されていません。接続が戻ると自動で保存されます。</div>')+`<h3>利用者名簿</h3><div class="mut">${ME?esc(ME.username)+' · <a href="#" id="lgo">ログアウト</a>':''}</div>
+ <div class="row"><input type="date" id="dt" value="${date}"><button id="pv1">←</button><button id="nx">→</button><b>（${WD[pd(date).getDay()]}）</b></div>
+ <div style="margin-top:8px"><div class="pp hdr"><span class="hsp"></span><span class="nm"></span><span class="md3"><button data-sortm="day" title="наверх: 通">▲通</button><button data-sortm="night" title="наверх: 泊">▲泊</button><button data-sortm="visit" title="наверх: 訪">▲訪</button></span><span class="hsp2"></span></div>${P.slice().sort(byOrd).map(person).join('')}</div>
+ ${(()=>{const hid=DB.people.filter(p=>p.v[0].from<=date&&off(p));return hid.length?`<details ${hidOpen?'open':''} ontoggle="hidOpen=this.open"><summary>欠席（${hid.length}）</summary>${hid.map(p=>`<div class="pp"><span class="nm">${esc(S(p).name)}</span><button data-a="sh" data-id="${p.id}">戻す</button><button data-a="pd" data-id="${p.id}">${armDel===p.id?'本当に削除？もう一度押してください':'完全に削除'}</button></div>`).join('')}</details>`:''})()}
+ <div class="row"><button id="pred">いつも通りに設定</button><span class="mut">${Object.keys(PR).length?'★ いつもこの曜日に来る人':'同じ曜日のデータはまだありません'}</span></div>
+ <div class="row" style="margin-top:8px"><input type="text" id="np" placeholder="新しい名前" size="16"><select id="nk"><option value="regular">通い/泊まり</option><option value="visit">訪問</option></select><button id="add">＋ 追加</button></div>
+ <h4>シフト</h4><div class="row">明: ${inp('dawn',0,SD.dawn[0])}${two('dawn')}</div>
+ ${st.day.map((t,j)=>dayRow(j,t,false)).join('')}${st.day.length<9?dayRow(st.day.length,'',true):''}
+ <div class="row">夜勤: ${inp('night',0,st.night[0])}${two('night')}</div>
+ <div class="row">その他: <input type="text" data-a="sf" data-p="other" value="${esc(d.other)}" size="26"></div>
+ <h4>印刷キュー（${Q.length} / 15）</h4><div class="row"><button id="qadd" ${Q.length>=15?'disabled':''}>シート追加</button><button id="qaw" ${Q.length>=15?'disabled':''}>水分追加</button><button id="qae" ${Q.length>=15?'disabled':''}>排泄追加</button><button class="p" id="qpdf" ${Q.length?'':'disabled'}>まとめてPDF保存</button><button id="qclr" ${Q.length?'':'disabled'}>空にする</button></div><div>${Q.map(k=>{const[tp,dt]=qparse(k);return `<span class="tg">${tp==='water'?'水 ':tp==='excr'?'排 ':''}${dt.slice(5).replace('-','/')} <button class="sb" data-a="qd" data-i="${k}">✕</button></span> `}).join('')}</div>
+ <h4>フォームA4（水分・排泄）</h4><div class="row"><label>日数：<input type="number" id="fdays" min="1" max="31" value="2" style="width:60px"></label><button id="xw">PDF 水分</button><button id="xe">PDF 排泄</button></div><div class="mut">1ページ目＝選択日、2ページ目＝翌日、以降も同様。両面印刷で1枚のA4に2日分です。</div>
+ <h4>ファイル</h4>
+ <div class="row"><span class="mut">番号（次のシートは続けて数えます）：</span><input type="number" id="seqN" min="1" max="4" value="${day().seq||(DB.counter%4)+1}" style="width:56px"><button id="seqS">設定</button></div><div class="row"><button class="p" id="pdf">PDFを保存</button></div>`;
+ $('#ui').innerHTML=h}
+const upd=s=>{save();render();if(s){ui();if(PAGE==='admin')admDraw()}},P_=id=>DB.people.find(x=>String(x.id)===id);
+const U_=$('#ui');const on2=(t,f)=>{U_.addEventListener(t,f);$('#admw').addEventListener(t,f)};
+on2('focusin',e=>{old=e.target.type==='checkbox'?'':e.target.value});
+on2('input',e=>{const t=e.target,a=t.dataset.a;
+ if(a==='f'){const p=P_(t.dataset.id),k=t.dataset.k;const pt={[k]:k==='delivery'?(t.value||null):t.value};if(k==='kind'){const c=S(p);if(t.value==='visit')pt.meals={};else if(!(c.meals.b||c.meals.l||c.meals.d))pt.meals={b:1,l:1,d:1}}setS(p,pt,true);if(k==='name'){const sp=document.querySelector('[data-nm="'+t.dataset.id+'"]');if(sp)sp.textContent=t.value}upd()}
+ else if(a==='sf'){const q=t.dataset.p;if(q==='other')setDay('other',t.value,true);else if(q==='day'){const f=t.dataset.f,i=+t.dataset.i,arr=[...day().staff.day];
+    if(f==='pre'){if(i<arr.length){arr[i]=t.value?t.value+'\t'+sp(arr[i])[1]:sp(arr[i])[1];setDay('staff.day',arr,true)}}
+    else{const row=t.closest('.row'),pe=row&&row.querySelector('[data-f="pre"]'),L=staffLetter(t.value),pre=L||(pe?pe.value:sp(arr[i])[0]);if(!t.value){if(i<arr.length)arr.splice(i,1)}else arr[i]=pre?pre+'\t'+t.value:t.value;setDay('staff.day',arr,true)}}
+   else{const arr=[...curStaff(q)];arr[+t.dataset.i]=t.value;setDay('staff.'+q,arr,true)}upd()}});
+on2('change',e=>{const t=e.target,a=t.dataset.a,p=P_(t.dataset.id);
+ if(t.id==='dt'){date=t.value||date;upd(1);return}
+ if(t.id==='sm'){sm=t.value||null;ui();return}
+ if(a==='pr')setMode(p,t.checked?(S(p).kind==='visit'?'visit':'day'):null);
+ else if(a==='dy')setMode(p,t.checked?'day':null);
+ else if(a==='ov')setMode(p,t.checked?'night':'day');
+ else if(a==='vd')setMode(p,t.checked?'visit':null);
+ else if(a==='md'){setS(p,{meds:{...S(p).meds,[t.dataset.k]:t.checked}});upd()}
+ else if(a==='ml'){setS(p,{meals:{...S(p).meals,[t.dataset.k]:t.checked}});upd()}
+ else if(a==='mv'){setS(p,{mealsV:{...(S(p).mealsV||{}),[t.dataset.k]:t.checked}});upd()}
+ else if(a==='dv'){setS(p,{delivery:{...dv(S(p)),[t.dataset.k]:t.checked}});upd()}
+ else if(a==='vt'){setS(p,{vital:t.checked});upd()}
+ else if(a==='f'){const k=t.dataset.k,v=k==='delivery'?(t.value||null):t.value;if(old!==t.value)log('person',p.id,k,old,v);upd(k==='kind'||(PAGE==='admin'&&k==='name')?1:0)}
+ else if(a==='sf'){const q=t.dataset.p;if(old!==t.value)log('day',date,q==='other'?q:'staff.'+q,old,t.value);upd(q==='day'&&t.dataset.f==='name'?1:0)}});
+U_.addEventListener('click',e=>{if(e.target.id==='lgo'){e.preventDefault();logout();return}if(e.target.closest('h3')){const n=Date.now();tap=tap.filter(x=>n-x<4000);tap.push(n);if(tap.length>=7&&ME&&ME.role==='admin'){tap=[];openStats()}return}
+ const b=e.target.closest('button');if(!b)return;if(b.dataset&&b.dataset.sortm){sortMode(b.dataset.sortm);return}const a=b.dataset.a,p=P_(b.dataset.id);if(a!=='pd')armDel=null;
+ if(a==='qd'){Q=Q.filter(x=>x!==b.dataset.i);qsave();ui()}
+ else if(a==='ed'){if(open.has(p.id))open.clear();else{open.clear();open.add(p.id)}ui()}
+ else if(a==='mv'){const c=S(p),k=c.kind==='regular'?'visit':'regular',pt={kind:k};if(k==='visit')pt.meals={};else if(!(c.meals.b||c.meals.l||c.meals.d))pt.meals={b:1,l:1,d:1};setS(p,pt);if(k==='visit'&&day().overnight.includes(p.id))setDay('overnight',day().overnight.filter(x=>x!==p.id));upd(1)}
+ else if(a==='ad'){const q=b.dataset.p;setDay('staff.'+q,[...curStaff(q),'']);upd(1)}
+ else if(a==='rm'){const q=b.dataset.p;setDay('staff.'+q,curStaff(q).slice(0,1));upd(1)}
+ else if(a==='del'){p.off=p.off||[];if(!off(p))p.off.push([date,null]);Object.keys(DB.days).filter(k=>k>=date).forEach(k=>{const d=DB.days[k];d.present=d.present.filter(x=>x!==p.id);d.overnight=d.overnight.filter(x=>x!==p.id)});open.delete(p.id);log('person',p.id,'hide',null,date);upd(1)}
+ else if(a==='pd'){if(armDel!==p.id){armDel=p.id;ui()}else{log('person',p.id,'delrec',JSON.parse(JSON.stringify(p)),null);DB.people=DB.people.filter(x=>x!==p);Object.values(DB.days).forEach(d=>{d.present=d.present.filter(x=>x!==p.id);d.overnight=d.overnight.filter(x=>x!==p.id)});open.delete(p.id);armDel=null;upd(1)}}
+ else if(a==='sh'){const iv=(p.off||[]).find(([x,y])=>date>=x&&(y==null||date<y));if(iv){if(iv[0]===date)p.off.splice(p.off.indexOf(iv),1);else iv[1]=date}log('person',p.id,'show',null,date);upd(1)}
+ else if(a==='dd'){const arr=[...day().staff.day];arr.splice(+b.dataset.i,1);setDay('staff.day',arr);upd(1)}
+ else if(b.id==='da'){setDay('staff.day',[...day().staff.day,'']);upd(1)}
+ else if(b.id==='add'){const v=$('#np').value.trim();if(v){addP(v,$('#nk').value);upd(1)}}
+ else if(b.id==='pred')fill();
+ else if(b.id==='qadd'){ensure();save();if(!Q.includes(date)&&Q.length<15){Q.push(date);Q.sort();qsave()}ui()}
+ else if(b.id==='qaw'||b.id==='qae'){const k=(b.id==='qaw'?'water':'excr')+'|'+date;if(!Q.includes(k)&&Q.length<15){Q.push(k);Q.sort();qsave()}ui()}
+ else if(b.id==='qclr'){Q=[];qsave();ui()}
+ else if(b.id==='qpdf')printQueue()
+  else if(b.id==='seqS')setSeq()
+  else if(b.id==='xw')xlsxForms('water')
+ else if(b.id==='xe')xlsxForms('excr')
+ else if(b.id==='pv1'||b.id==='nx'){const x=pd(date);x.setDate(x.getDate()+(b.id==='nx'?1:-1));date=x.getFullYear()+'-'+pad(x.getMonth()+1)+'-'+pad(x.getDate());upd(1)}
+ else if(b.id==='pdf')doPrint()});
+function openStats(){location.href='admin.html'}
+$('#stx').addEventListener('click',e=>{if(e.target.id==='stc'||e.target.id==='stx')$('#stx').style.display='none'});
+$('#stx').addEventListener('change',e=>{if(e.target.id==='sm'){sm=e.target.value||null;openStats()}});
+let tap=[];
+async function importSql(){const f=$('#imf')&&$('#imf').files[0];if(!f){authMsg='Выберите файл .sql';showAuth();return}
+ const fd=new FormData();fd.append('f',f);
+ try{const r=await fetch('api.php?a=import_sql',{method:'POST',body:fd}).then(x=>x.json());authMsg=r.ok?'База загружена. Теперь зарегистрируйтесь.':(r.msg||'Ошибка загрузки')}catch(e){authMsg='Ошибка загрузки'}
+ showAuth()}
+$('#auth').addEventListener('click',e=>{if(e.target.id==='imb')importSql();if(e.target.id==='ago')authGo();if(e.target.id==='asw'){e.preventDefault();authMode=authMode==='login'?'register':'login';authMsg='';showAuth()}});
+$('#auth').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.tagName==='INPUT')authGo()});
+$('#admb2').addEventListener('click',()=>{location.href='admin.html'});
+$('#cmb').addEventListener('click',cmOpen);
+$('#cmw').addEventListener('click',e=>{if(e.target.id==='cmx'||e.target.id==='cmw'){$('#cmw').style.display='none';return}
+ if(e.target.id==='cms'){const t=$('#cmt').value.trim();if(!t)return;jp('comment_add',{text:t}).then(r=>{$('#cmr').textContent=r.ok?'送信しました。ありがとうございます。':'送信できませんでした。';if(r.ok)$('#cmt').value=''}).catch(()=>{$('#cmr').textContent='送信できませんでした。'})}});
+$('#admw').addEventListener('click',async e=>{const t=e.target;
+ if(t.id==='admc'||t.id==='admw'){$('#admw').style.display='none';return}
+ if(t.id==='b2test'||t.id==='b2save'){const g=i=>$('#'+i).value,o=$('#b2msg');o.textContent='Проверяю…';
+  try{const r=await jp(t.id==='b2test'?'db2_test':'db2_save',{host:g('b2h'),port:g('b2p'),name:g('b2n'),user:g('b2u'),pass:g('b2w')});
+   if(!r.ok){o.textContent=r.msg;return}
+   if(t.id==='b2test'){o.textContent=r.msg;return}
+   await admLoadDb();admDraw()}catch(e){o.textContent='Нет ответа от сервера'}return}
+ if(t.id==='b2sync'){const o=$('#b2msg');o.textContent='Синхронизирую…';try{const r=await jp('db_sync',{});await admLoadDb();admDraw();const o2=$('#b2msg');if(o2)o2.textContent=r.ok?'Готово':(r.msg||'Ошибка')}catch(e){o.textContent='Нет ответа от сервера'}return}
+ if(t.id==='cpAB'||t.id==='cpBA'){const k=t.id==='cpAB'?'a2b':'b2a';
+  if(ADM.arm!==k){ADM.arm=k;t.textContent=k==='a2b'?'Точно? Перезаписать подключённую базу':'Точно? Перезаписать встроенную базу';return}
+  ADM.arm='';const o=$('#b2msg');if(o)o.textContent='Копирую… это может занять время';
+  try{const r=await jp('db_copy',{dir:k});const msg=r.msg||(r.ok?'Готово':'Ошибка');await admLoadDb();admDraw();const o2=$('#b2msg');if(o2)o2.textContent=msg}catch(e){const o2=$('#b2msg');if(o2)o2.textContent='Нет ответа от сервера'}
+  return}
+ if(t.id==='b2off'){if(ADM.arm!=='b2off'){ADM.arm='b2off';t.textContent='Точно отключить?';return}ADM.arm='';try{await jp('db2_remove',{})}catch(e){}await admLoadDb();admDraw();return}
+ if(t.dataset&&t.dataset.tab){ADM.tab=t.dataset.tab;ADM.arm='';if(ADM.tab==='d'){ADM.db=null;admDraw();await admLoadDb()}admDraw();return}
+ if(t.id==='stadd'){const n=($('#stn').value||'').trim(),l=($('#stl').value||'').trim();
+  if(!n||!l){admMsg='Укажите имя и букву';admDraw();return}
+  if(DB.staff.length>=25){admMsg='Не больше 25 работников';admDraw();return}
+  if(DB.staff.some(x=>x.name===n)){admMsg='Такой работник уже есть';admDraw();return}
+  DB.staff.push({name:n,letter:l});admMsg='';log('staff','roster','add',null,n);upd(0);admDraw();return}
+ if(t.dataset&&t.dataset.stdel!==undefined){const i=+t.dataset.stdel,nm=DB.staff[i]&&DB.staff[i].name;DB.staff.splice(i,1);admMsg='';log('staff','roster','remove',nm,null);upd(0);admDraw();return}
+ if(t.dataset&&t.dataset.aup){const L=normOrd();moveP(t.dataset.aup,L.findIndex(p=>String(p.id)===t.dataset.aup)-1);return}
+ if(t.dataset&&t.dataset.adn){const L=normOrd();moveP(t.dataset.adn,L.findIndex(p=>String(p.id)===t.dataset.adn)+1);return}
+ if(t.dataset&&t.dataset.aed){ADM.pedit=ADM.pedit===t.dataset.aed?'':t.dataset.aed;admDraw();return}
+ const op=t.dataset&&t.dataset.adm;if(!op)return;const key=t.dataset.id+':'+op;
+ if(op!=='approve'&&ADM.arm!==key){ADM.arm=key;admDraw();return}
+ ADM.arm='';try{if(op==='cdel')await jp('comment_delete',{id:+t.dataset.id});else await jp('user_set',{id:+t.dataset.id,op});await admRefresh();ADM.comments=(await jp('comments_list',{})).comments}catch(x){}admDraw()});
+$('#admw').addEventListener('change',async e=>{if(e.target.dataset&&e.target.dataset.stl!==undefined){const i=+e.target.dataset.stl,v=e.target.value.trim();if(v&&DB.staff[i]){DB.staff[i].letter=v;admMsg='';log('staff','roster','letter',null,v);upd(0)}else{admMsg='Буква не может быть пустой';admDraw()}return}if(e.target.dataset&&e.target.dataset.ulang){try{await jp('user_set',{id:+e.target.dataset.ulang,op:'lang',lang:e.target.value});await admRefresh();admDraw()}catch(x){}return}const t=e.target;if(t.id==='sm'){sm=t.value||null;admDraw();return}if(t.dataset&&t.dataset.apos){const v=parseInt(t.value,10);if(v>0)moveP(t.dataset.apos,v-1)}});
+const _ui0=ui;ui=function(){_ui0();i18nApply(document.body)};
+const _admDraw0=admDraw;admDraw=function(){_admDraw0();i18nApply(document.body)};
+const _showAuth0=showAuth;showAuth=function(){_showAuth0();i18nApply(document.body)};
+addEventListener('resize',fit);ui();render();boot();setInterval(poll,20000);
+</script></body></html>
