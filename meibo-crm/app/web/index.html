@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>meibo-crm</title>
+<style>
+  :root { --ink:#1c2630; --mut:#6b7785; --line:#d5dbe2; --acc:#00806a; --on:#00a884; --bg:#eef1f4; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:15px/1.4 system-ui,"Hiragino Sans","Yu Gothic",Meiryo,sans-serif; background:var(--bg); color:var(--ink); }
+  header { background:var(--acc); color:#fff; padding:10px 14px; display:flex; justify-content:space-between; align-items:center; gap:8px; position:sticky; top:0; z-index:5; }
+  header b { font-size:16px; }
+  main { padding:12px; max-width:900px; margin:0 auto; }
+  .card { background:#fff; border-radius:10px; padding:14px; box-shadow:0 1px 0 var(--line); margin-bottom:12px; }
+  input, select { font:inherit; padding:8px 10px; border:1px solid var(--line); border-radius:8px; }
+  input.m { width:100%; }
+  button { font:inherit; padding:8px 12px; border:1px solid var(--line); background:#fff; border-radius:8px; cursor:pointer; }
+  button.p { background:var(--acc); color:#fff; border-color:var(--acc); }
+  button:disabled { opacity:.45; cursor:default; }
+  .err { color:#b91c1c; font-size:14px; min-height:1.2em; }
+  .people { display:flex; flex-wrap:wrap; gap:6px; }
+  .people button.on { background:var(--acc); color:#fff; border-color:var(--acc); }
+  .grid { display:grid; grid-template-columns:170px 1fr; border:1px solid var(--line); border-radius:8px; overflow:hidden; background:#fff; }
+  .grid > div { padding:7px 8px; border-bottom:1px solid #eef1f4; min-width:0; }
+  .grid > .k { background:#f6f8fa; font-weight:600; font-size:13px; }
+  .grid > .sec { grid-column:1 / -1; background:#e9eef3; color:var(--acc); font-weight:700; font-size:12px; }
+  .grid > .v { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+  .chk { display:inline-flex; gap:4px; align-items:center; border:1px solid var(--line); border-radius:6px; padding:4px 8px; cursor:pointer; background:#fff; }
+  .chk.on { background:#e3f5f0; border-color:var(--on); }
+  .hint { font-size:12px; color:var(--mut); }
+  input.s { width:64px; text-align:center; }
+  textarea { font:inherit; width:100%; border:1px solid var(--line); border-radius:8px; padding:6px; min-height:50px; }
+  @media (max-width:640px) { .grid { grid-template-columns:110px 1fr; } }
+</style>
+</head>
+<body>
+<header><b>meibo-crm</b><span id="who"></span></header>
+<main>
+  <div class="card" id="auth" style="display:none">
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <input id="au" autocomplete="username">
+      <input id="ap" type="password" autocomplete="current-password">
+      <button class="p" id="ago"></button>
+      <button id="asw"></button>
+    </div>
+    <p class="hint" id="ahint"></p>
+    <div class="err" id="aerr"></div>
+  </div>
+  <div id="app" style="display:none">
+    <div class="card"><div class="hint" id="dayline"></div><div class="people" id="people"></div>
+      <div style="margin-top:10px"><button id="prt"></button> <span class="hint" id="prthint"></span></div></div>
+    <div class="card" id="formcard"></div>
+  </div>
+</main>
+<script>
+// ---------- language: Russian if the device language is Russian, otherwise Japanese ----------
+const LANG = ((navigator.language || (navigator.languages && navigator.languages[0]) || '') + '').toLowerCase().startsWith('ru') ? 'ru' : 'ja';
+document.documentElement.lang = LANG;
+const TR = {
+  ja: {
+    login:'ログイン', register:'新規登録', name:'ユーザー名', pass:'パスワード（8文字以上）', firstAdmin:'最初に登録した方が管理者になります。他の方は承認を待ちます。',
+    regOk:'登録しました。管理者の承認後にログインできます。', wrong:'ユーザー名またはパスワードが違います', pending:'管理者の承認待ちです', blocked:'このアカウントは利用できません',
+    exists:'このユーザー名は使われています', weak:'パスワードは8文字以上', nameErr:'ユーザー名は2〜32文字、空白なし', err:'エラーが発生しました',
+    today:'本日', meAs:'あなた', notLinked:'名簿の名前に紐づいていません', onlyView:'閲覧のみ', noOne:'本日の利用者はいません',
+    pickPerson:'利用者を選んでください', pickHint:'未記入の欄は一度だけ記入できます。修正は5分以内に、記入した本人が行えます。', viewOnly:'閲覧のみ',
+    printSheet:'名簿を印刷', printHint:'名簿の様式で印刷', printOff:'名簿が利用できません', popup:'ポップアップを許可してください',
+    lockMsg:'修正は記入から5分以内に、記入した本人のみ可能です', notYours:'この方はあなたの担当ではありません', notToday:'本日の利用者ではありません', notSaved:'保存できませんでした',
+    logout:'ログアウト', home:'自宅', pending2:'',
+    sec:{basic:'基本', bowel:'排泄', vitals:'バイタル', meal:'食事（A/B、X＝キャンセル）', meds:'服薬・臨薬', care:'ケア', act:'アクト', bill:'請求関係'},
+    rows:{send:'送迎・訪問等', note:'注意点', lastBm:'最終排便', bmDays:'排便－日数', vitals:'BP / P / KT', meal:'食事', oyatsu:'おやつ', meds:'服薬', rinyaku:'臨薬', oral:'口腔ケア', seiyo:'整容', bath:'入浴', act:'1–7', bill:'請求'},
+    ph:{send:'送迎・訪問など', note:'重要な情報', lastBm:'日付・時刻', oyatsu:'おやつ', rinyaku:'抗生物質 など', up:'上', low:'下', wash:'洗濯'},
+    lab:{朝:'朝',昼:'昼',夕:'夕',翌朝:'翌朝',貼り薬:'貼り薬',寝る前:'寝る前',髭剃り:'髭剃り',爪切り:'爪切り',電気器具:'電気器具',洗濯:'洗濯',入浴:'入浴'}
+  },
+  ru: {
+    login:'Вход', register:'Регистрация', name:'Имя пользователя', pass:'Пароль (от 8 знаков)', firstAdmin:'Первый зарегистрированный станет администратором. Остальные ждут подтверждения.',
+    regOk:'Регистрация принята. Войти можно после подтверждения администратором.', wrong:'Неверное имя или пароль', pending:'Ждёт подтверждения администратора', blocked:'Аккаунт недоступен',
+    exists:'Имя уже занято', weak:'Пароль от 8 знаков', nameErr:'Имя: 2–32 знака, без пробелов', err:'Произошла ошибка',
+    today:'Сегодня', meAs:'Вы', notLinked:'не привязаны к имени в списке работников', onlyView:'только просмотр', noOne:'Сегодня никого нет',
+    pickPerson:'Выберите человека', pickHint:'Пустое поле записывается один раз. Исправить может записавший, в течение 5 минут.', viewOnly:'только просмотр',
+    printSheet:'Печать листа', printHint:'полный лист в дизайне meibo', printOff:'Лист недоступен', popup:'Разрешите всплывающие окна',
+    lockMsg:'Исправлять можно только 5 минут после записи и только записавшему. Обратитесь к модератору.', notYours:'Это не ваш работник.', notToday:'Этого человека нет в списке сегодня', notSaved:'Не сохранено',
+    logout:'Выйти', home:'дом',
+    sec:{basic:'Основное', bowel:'Стул', vitals:'Показатели', meal:'Питание (A/B, X = отмена)', meds:'Лекарства', care:'Уход', act:'Активность', bill:'Счета'},
+    rows:{send:'Перевозка / визиты', note:'Заметка (важное)', lastBm:'Последний стул', bmDays:'Дней без стула', vitals:'АД / пульс / t°', meal:'Питание', oyatsu:'Перекус', meds:'Лекарства', rinyaku:'Разовые лекарства', oral:'Уход за полостью рта', seiyo:'Гигиена', bath:'Душ / ванна', act:'1–7', bill:'Счета'},
+    ph:{send:'перевозка, визиты', note:'важное', lastBm:'дата, время', oyatsu:'перекус', rinyaku:'антибиотики и др.', up:'верх', low:'низ', wash:'стирка'},
+    lab:{朝:'Утро',昼:'День',夕:'Вечер',翌朝:'Утро след.',貼り薬:'Пластырь',寝る前:'Перед сном',髭剃り:'Бритьё',爪切り:'Ногти',電気器具:'Электричество',洗濯:'Стирка',入浴:'Ванна'}
+  }
+};
+const T = (k) => { const parts = k.split('.'); let v = TR[LANG]; for (const p of parts) { v = v && v[p]; } return (v === undefined ? (TR.ja[parts[0]] && parts.reduce((a,p)=>a&&a[p], TR.ja)) : v) || k; };
+const L = (k) => TR[LANG].lab[k] || k;
+
+const MEALS=['朝','昼','夕'], MEDS=['朝','昼','夕','翌朝','貼り薬','寝る前'], ORAL=['朝','昼','夕'], SEIYO=['髭剃り','爪切り'], ACT=[1,2,3,4,5,6,7], BILL=['電気器具','洗濯'];
+let ME=null, PEOPLE=[], CUR=null, ENT={}, CAN=false, mode='login';
+const api=(a,body)=>fetch('api.php?a='+a,{method:body?'POST':'GET',headers:{'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined}).then(async r=>({status:r.status,j:await r.json().catch(()=>({}))}));
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function showAuth(){ document.getElementById('auth').style.display=''; document.getElementById('app').style.display='none';
+  document.getElementById('au').placeholder=T('name'); document.getElementById('ap').placeholder=T('pass');
+  document.getElementById('ago').textContent=mode==='login'?T('login'):T('register');
+  document.getElementById('asw').textContent=mode==='login'?T('register'):T('login');
+  document.getElementById('ahint').textContent=mode==='login'?'':T('firstAdmin'); }
+document.getElementById('asw').onclick=()=>{mode=mode==='login'?'register':'login';document.getElementById('aerr').textContent='';showAuth();};
+document.getElementById('ago').onclick=async()=>{
+  const body={u:document.getElementById('au').value.trim(),p:document.getElementById('ap').value};
+  const r=await api(mode==='login'?'login':'register',body), err=document.getElementById('aerr');
+  if(mode==='register'&&r.j.ok){ err.textContent=r.j.status==='pending'?T('regOk'):''; if(r.j.status==='active'){mode='login';boot();} return; }
+  if(mode==='login'&&r.j.ok){boot();return;}
+  const map={wrong:'wrong',pending:'pending',blocked:'blocked',exists:'exists',weak:'weak',name:'nameErr'};
+  err.textContent=T(map[r.j.error]||'err');
+};
+
+async function boot(){
+  const r=await api('me'); if(r.status!==200){ showAuth(); return; }
+  ME=r.j.user; document.getElementById('who').textContent=ME.username+(ME.role==='admin'?' (admin)':'')+' · ';
+  document.getElementById('auth').style.display='none'; document.getElementById('app').style.display='';
+  document.getElementById('dayline').textContent=T('today')+': '+r.j.day+(ME.staff_name?' · '+T('meAs')+': '+ME.staff_name:' · '+T('notLinked'));
+  document.getElementById('prt').textContent=T('printSheet'); document.getElementById('prthint').textContent=T('printHint');
+  await loadPeople();
+}
+async function loadPeople(){
+  const r=await api('people'); PEOPLE=r.j.people||[]; CAN=!!r.j.can_write;
+  document.getElementById('people').innerHTML=PEOPLE.map(p=>`<button data-k="${esc(p.person_key)}" class="${CUR===p.person_key?'on':''}">${esc(p.name)}${p.kind==='visit'?' ('+T('home')+')':''}</button>`).join('')||`<span class="hint">${T('noOne')}</span>`;
+  document.querySelectorAll('#people button').forEach(b=>b.onclick=()=>openPerson(b.dataset.k));
+  if(!CAN) document.getElementById('dayline').textContent+=' · '+T('viewOnly');
+}
+async function openPerson(k){ CUR=k; await loadPeople(); const r=await api('entries',{person:k}); ENT={};
+  (r.j.entries||[]).forEach(e=>ENT[e.field]=e); drawForm(); }
+function val(f){ return ENT[f]?ENT[f].value:''; }
+function locked(f){ const e=ENT[f]; if(!e||e.value==='') return false; if(!ME) return true; if(ME.role==='admin') return false;
+  return !(Number(e.set_by)===Number(ME.id)&&Math.floor(Date.now()/1000)-Number(e.set_at)<=300); }
+function chk(f,label){ const on=val(f)==='1'; const dis=!CAN||locked(f); return `<label class="chk ${on?'on':''}"><input type="checkbox" data-f="${esc(f)}" ${on?'checked':''} ${dis?'disabled':''}>${esc(label)}</label>`; }
+function txt(f,ph,cls){ const dis=!CAN||locked(f); return `<input class="${cls||'m'}" data-f="${esc(f)}" value="${esc(val(f))}" placeholder="${esc(ph||'')}" ${dis?'disabled':''}>`; }
+function drawForm(){
+  const p=PEOPLE.find(x=>x.person_key===CUR); if(!p){ document.getElementById('formcard').innerHTML=`<div class="hint">${T('pickPerson')}</div>`; return; }
+  const S=T('sec'), R=T('rows'), P=T('ph');
+  const mealRow=m=>`<span style="display:inline-flex;gap:4px;align-items:center"><b>${m}</b>${txt('meal.'+m+'.a','',"s")}/${txt('meal.'+m+'.b','',"s")} ${chk('meal.'+m+'.x','X')}</span>`;
+  document.getElementById('formcard').innerHTML=`<div class="hint" style="margin-bottom:8px">${esc(p.name)}${p.kind==='visit'?' · '+T('home'):''} · ${CAN?T('pickHint'):T('viewOnly')}</div>
+  <div class="grid">
+    <div class="sec">${S.basic}</div>
+    <div class="k">${R.send}</div><div class="v">${txt('send',P.send)}</div>
+    <div class="k">${R.note}</div><div class="v">${txt('note',P.note)}</div>
+    <div class="sec">${S.bowel}</div>
+    <div class="k">${R.lastBm}</div><div class="v">${txt('lastBm',P.lastBm)}</div>
+    <div class="k">${R.bmDays}</div><div class="v">${txt('bmDays','','s')}</div>
+    <div class="sec">${S.vitals}</div>
+    <div class="k">${R.vitals}</div><div class="v">${txt('bpU',P.up,'s')} / ${txt('bpL',P.low,'s')} P ${txt('pul','','s')} KT ${txt('kt','','s')}</div>
+    <div class="sec">${S.meal}</div>
+    <div class="k">${R.meal}</div><div class="v">${MEALS.map(mealRow).join('')}</div>
+    <div class="k">${R.oyatsu}</div><div class="v">${txt('oyatsu',P.oyatsu)}</div>
+    <div class="sec">${S.meds}</div>
+    <div class="k">${R.meds}</div><div class="v">${MEDS.map(k=>chk('med.'+k,L(k))).join('')}</div>
+    <div class="k">${R.rinyaku}</div><div class="v">${txt('rinyaku',P.rinyaku)}</div>
+    <div class="sec">${S.care}</div>
+    <div class="k">${R.oral}</div><div class="v">${ORAL.map(k=>chk('oral.'+k,L(k))).join('')}</div>
+    <div class="k">${R.seiyo}</div><div class="v">${SEIYO.map(k=>chk('seiyo.'+k,L(k))).join('')}</div>
+    <div class="k">${R.bath}</div><div class="v">${chk('bath',L('入浴'))}</div>
+    <div class="sec">${S.act}</div>
+    <div class="k">${R.act}</div><div class="v">${ACT.map(i=>chk('act.'+i,String(i))).join('')}</div>
+    <div class="sec">${S.bill}</div>
+    <div class="k">${R.bill}</div><div class="v">${BILL.map(k=>chk('bill.'+k,L(k))).join('')} ${txt('wash',P.wash,'s')}</div>
+  </div>`;
+  document.querySelectorAll('#formcard [data-f]').forEach(el=>{
+    const save=async v=>{ const r=await api('save',{person:CUR,field:el.dataset.f,value:v});
+      if(r.j.ok){ ENT[el.dataset.f]={value:v,set_by:ME.id,set_at:Math.floor(Date.now()/1000)}; drawForm(); }
+      else { const m={locked:'lockMsg',not_yours:'notYours',not_today:'notToday'}; alert(T(m[r.j.error]||'notSaved')); } };
+    if(el.type==='checkbox') el.onchange=()=>save(el.checked?'1':'');
+    else el.onchange=()=>save(el.value);
+  });
+}
+document.getElementById('prt').onclick=()=>printSheet();
+// prints today's sheet: meibo's own sheet code (sheet-bundle.js) + meibo's styles (sheet.css) + the day's data.
+// Worker entries are applied only to this printout. Nothing is written to meibo.
+async function printSheet(){
+  const r=await api('sheet');
+  if(r.status!==200||!r.j.ok){ alert(T('printOff')); return; }
+  const snap=JSON.parse(JSON.stringify(r.j.snapshot)), day=r.j.day, ents=r.j.entries||{};
+  const MAP={'朝':'morning','昼':'noon','夕':'evening','翌朝':'nextMorning','貼り薬':'patch','寝る前':'bedtime'};
+  snap.people.forEach(p=>{
+    let name=''; (p.v||[]).forEach(v=>{ if(v.s&&v.s.name) name=v.s.name; });
+    const e=ents[name]; if(!e) return;
+    let base=null; (p.v||[]).forEach((v,i)=>{ if(i===0) base=v.s; if(v.from<=day) base=v.s; });
+    if(!base) return;
+    base=JSON.parse(JSON.stringify(base)); base.meds=base.meds||{};
+    Object.keys(MAP).forEach(k=>{ if(e['med.'+k]!==undefined) base.meds[MAP[k]]=(e['med.'+k]==='1'); });
+    if(e['rinyaku']) base.meds.abx=true;
+    if(e['note']) base.note=e['note'];
+    p.v=(p.v||[]).filter(v=>v.from!==day).concat([{from:day,s:base}]).sort((x,y)=>x.from<y.from?-1:x.from>y.from?1:0);
+  });
+  const sheetSrc=await fetch('sheet-bundle.js').then(x=>x.text());
+  const css=await fetch('sheet.css').then(x=>x.text());
+  const data=JSON.stringify(snap).replace(/</g,'\\u003c');
+  const html='<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><title>'+day+'_利用者名簿</title><style>'+css+'</style></head><body><div id="sheet"></div><script>'+sheetSrc+'\n;DB='+data+';date='+JSON.stringify(day)+';(function(){var el=document.getElementById("sheet");var o=sheetInner();el.style.setProperty("--r",o.r+"mm");el.innerHTML=o.html;place(el,o);setTimeout(function(){window.print();},300);})();<\/script></body></html>';
+  const w=window.open('','_blank'); if(!w){ alert(T('popup')); return; }
+  w.document.open(); w.document.write(html); w.document.close();
+}
+boot();
+</script>
+</body>
+</html>

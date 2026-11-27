@@ -1,0 +1,22 @@
+manifestVersion: 1
+id: meibo-crm
+category: productivity
+name: meibo-crm
+version: "0.4.0"
+tagline: Работники заполняют записи дня
+description: >-
+  Вход работников, их записи за сегодняшний день, печать полного листа в дизайне meibo.
+  Данные дня читаются из meibo (только чтение).
+developer: Local
+website: ""
+dependencies: []
+repo: ""
+support: ""
+port: 1476
+gallery: []
+path: ""
+defaultUsername: ""
+defaultPassword: ""
+releaseNotes: ""
+submitter: Local
+submission: ""
