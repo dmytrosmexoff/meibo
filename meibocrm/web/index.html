@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MeiboCrm</title>
+<style>
+  :root { --ink:#1c2630; --mut:#6b7785; --line:#d5dbe2; --acc:#00806a; --on:#00a884; --bg:#eef1f4; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:15px/1.4 system-ui,"Hiragino Sans","Yu Gothic",Meiryo,sans-serif; background:var(--bg); color:var(--ink); }
+  header { background:var(--acc); color:#fff; padding:10px 14px; display:flex; justify-content:space-between; align-items:center; gap:8px; position:sticky; top:0; z-index:5; }
+  header b { font-size:16px; }
+  main { padding:12px; max-width:900px; margin:0 auto; }
+  .card { background:#fff; border-radius:10px; padding:14px; box-shadow:0 1px 0 var(--line); margin-bottom:12px; }
+  input, select { font:inherit; padding:8px 10px; border:1px solid var(--line); border-radius:8px; }
+  input.m { width:100%; }
+  button { font:inherit; padding:8px 12px; border:1px solid var(--line); background:#fff; border-radius:8px; cursor:pointer; }
+  button.p { background:var(--acc); color:#fff; border-color:var(--acc); }
+  button:disabled { opacity:.45; cursor:default; }
+  .err { color:#b91c1c; font-size:14px; min-height:1.2em; }
+  .people { display:flex; flex-wrap:wrap; gap:6px; }
+  .people button.on { background:var(--acc); color:#fff; border-color:var(--acc); }
+  .grid { display:grid; grid-template-columns:150px 1fr; border:1px solid var(--line); border-radius:8px; overflow:hidden; background:#fff; }
+  .grid > div { padding:7px 8px; border-bottom:1px solid #eef1f4; min-width:0; }
+  .grid > .k { background:#f6f8fa; font-weight:600; font-size:13px; }
+  .grid > .sec { grid-column:1 / -1; background:#e9eef3; color:var(--acc); font-weight:700; font-size:12px; }
+  .grid > .v { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+  .chk { display:inline-flex; gap:4px; align-items:center; border:1px solid var(--line); border-radius:6px; padding:4px 8px; cursor:pointer; background:#fff; }
+  .chk.on { background:#e3f5f0; border-color:var(--on); }
+  .hint { font-size:12px; color:var(--mut); }
+  .lock { color:var(--mut); font-size:12px; }
+  input.s { width:64px; text-align:center; }
+  textarea { font:inherit; width:100%; border:1px solid var(--line); border-radius:8px; padding:6px; min-height:50px; }
+  @media (max-width:640px) { .grid { grid-template-columns:110px 1fr; } }
+</style>
+</head>
+<body>
+<header><b>MeiboCrm</b><span id="who"></span></header>
+<main>
+  <div class="card" id="auth" style="display:none">
+    <div class="row" style="display:flex;gap:8px;flex-wrap:wrap">
+      <input id="au" placeholder="Имя пользователя" autocomplete="username">
+      <input id="ap" type="password" placeholder="Пароль (от 8 знаков)" autocomplete="current-password">
+      <button class="p" id="ago">Войти</button>
+      <button id="asw">Регистрация</button>
+    </div>
+    <p class="hint" id="ahint"></p>
+    <div class="err" id="aerr"></div>
+  </div>
+  <div id="app" style="display:none">
+    <div class="card"><div class="hint" id="dayline"></div><div class="people" id="people"></div>
+    <div style="margin-top:10px"><button id="prt">Печать листа</button> <span class="hint">полный лист в дизайне meibo</span></div></div>
+    <div class="card" id="formcard"><div class="hint">Выберите человека.</div></div>
+  </div>
+</main>
+<script>
+const MEALS=['朝','昼','夕'], MEDS=['朝','昼','夕','翌朝','貼り薬','寝る前'], ORAL=['朝','昼','夕'], SEIYO=['髭剃り','爪切り'], ACT=[1,2,3,4,5,6,7], BILL=['電気器具','洗濯'];
+let ME=null, PEOPLE=[], CUR=null, ENT={}, CAN=false, mode='login';
+const api=(a,body)=>fetch('api.php?a='+a,{method:body?'POST':'GET',headers:{'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined}).then(async r=>({status:r.status,j:await r.json().catch(()=>({}))}));
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function showAuth(){ document.getElementById('auth').style.display=''; document.getElementById('app').style.display='none';
+  document.getElementById('ago').textContent=mode==='login'?'Войти':'Зарегистрироваться';
+  document.getElementById('asw').textContent=mode==='login'?'Регистрация':'Вход';
+  document.getElementById('ahint').textContent=mode==='login'?'':'Первый зарегистрированный станет администратором. Остальные ждут подтверждения.'; }
+document.getElementById('asw').onclick=()=>{mode=mode==='login'?'register':'login';document.getElementById('aerr').textContent='';showAuth();};
+document.getElementById('ago').onclick=async()=>{
+  const body={u:document.getElementById('au').value.trim(),p:document.getElementById('ap').value};
+  const r=await api(mode==='login'?'login':'register',body), err=document.getElementById('aerr');
+  if(mode==='register'&&r.j.ok){ err.textContent=r.j.status==='pending'?'Регистрация принята. Войдите после подтверждения администратором.':''; if(r.j.status==='active'){mode='login';boot();} return; }
+  if(mode==='login'&&r.j.ok){boot();return;}
+  const msg={wrong:'Неверное имя или пароль',pending:'Ждёт подтверждения администратора',blocked:'Аккаунт остановлен',exists:'Имя уже занято',weak:'Пароль от 8 знаков',name:'Имя: 2–32 знака, без пробелов'};
+  err.textContent=msg[r.j.error]||'Ошибка';
+};
+
+async function boot(){
+  const r=await api('me'); if(r.status!==200){ showAuth(); return; }
+  ME=r.j.user; document.getElementById('who').textContent=ME.username+(ME.role==='admin'?' (админ)':'')+' · ';
+  document.getElementById('auth').style.display='none'; document.getElementById('app').style.display='';
+  document.getElementById('dayline').textContent='Сегодня: '+r.j.day+(ME.staff_name?' · вы: '+ME.staff_name:' · не привязан к имени работника');
+  await loadPeople();
+}
+async function loadPeople(){
+  const r=await api('people'); PEOPLE=r.j.people||[]; CAN=!!r.j.can_write;
+  document.getElementById('people').innerHTML=PEOPLE.map(p=>`<button data-k="${esc(p.person_key)}" class="${CUR===p.person_key?'on':''}">${esc(p.name)}${p.kind==='visit'?' (дом)':''}</button>`).join('')||'<span class="hint">Сегодня никого не отмечено.</span>';
+  document.querySelectorAll('#people button').forEach(b=>b.onclick=()=>openPerson(b.dataset.k));
+  if(!CAN) document.getElementById('dayline').textContent+=' · только просмотр';
+}
+async function openPerson(k){ CUR=k; await loadPeople(); const r=await api('entries',{person:k}); ENT={};
+  (r.j.entries||[]).forEach(e=>ENT[e.field]=e); drawForm(); }
+function val(f){ return ENT[f]?ENT[f].value:''; }
+function locked(f){ const e=ENT[f]; if(!e||e.value==='') return false; if(!ME) return true; if(ME.role==='admin') return false;
+  return !(Number(e.set_by)===Number(ME.id)&&Math.floor(Date.now()/1000)-Number(e.set_at)<=300); }
+function chk(f,label){ const on=val(f)==='1'; const dis=!CAN||locked(f); return `<label class="chk ${on?'on':''}"><input type="checkbox" data-f="${esc(f)}" ${on?'checked':''} ${dis?'disabled':''}>${esc(label)}</label>`; }
+function txt(f,ph,cls){ const dis=!CAN||locked(f); return `<input class="${cls||'m'}" data-f="${esc(f)}" value="${esc(val(f))}" placeholder="${esc(ph||'')}" ${dis?'disabled':''}>`; }
+function drawForm(){
+  const p=PEOPLE.find(x=>x.person_key===CUR); if(!p){ document.getElementById('formcard').innerHTML='<div class="hint">Выберите человека.</div>'; return; }
+  const mealRow=m=>`<span style="display:inline-flex;gap:4px;align-items:center"><b>${m}</b>${txt('meal.'+m+'.a','',"s")}/${txt('meal.'+m+'.b','',"s")} ${chk('meal.'+m+'.x','отм.')}</span>`;
+  document.getElementById('formcard').innerHTML=`<div class="hint" style="margin-bottom:8px">${esc(p.name)}${p.kind==='visit'?' · дом':''} · ${CAN?'заполните поля; пустое поле записывается один раз, исправить можно 5 минут':'только просмотр'}</div>
+  <div class="grid">
+    <div class="sec">Основное</div>
+    <div class="k">送迎時訪問等</div><div class="v">${txt('send','送迎・訪問など')}</div>
+    <div class="k">注意点</div><div class="v">${txt('note','重要な情報')}</div>
+    <div class="sec">排泄</div>
+    <div class="k">最終排便</div><div class="v">${txt('lastBm','日付 / 時刻')}</div>
+    <div class="k">排便－日数</div><div class="v">${txt('bmDays','','s')} 日</div>
+    <div class="sec">バイタル</div>
+    <div class="k">BP / P / KT</div><div class="v">${txt('bpU','上','s')} / ${txt('bpL','下','s')} P ${txt('pul','','s')} KT ${txt('kt','','s')}</div>
+    <div class="sec">食事（A / B、X＝отмена）</div>
+    <div class="k">食事</div><div class="v">${MEALS.map(mealRow).join('')}</div>
+    <div class="k">おやつ</div><div class="v">${txt('oyatsu','おやつ')}</div>
+    <div class="sec">服薬・臨薬</div>
+    <div class="k">服薬</div><div class="v">${MEDS.map(k=>chk('med.'+k,k)).join('')}</div>
+    <div class="k">臨薬</div><div class="v">${txt('rinyaku','抗生物質 など')}</div>
+    <div class="sec">ケア</div>
+    <div class="k">口腔ケア</div><div class="v">${ORAL.map(k=>chk('oral.'+k,k)).join('')}</div>
+    <div class="k">整容</div><div class="v">${SEIYO.map(k=>chk('seiyo.'+k,k)).join('')}</div>
+    <div class="k">入浴</div><div class="v">${chk('bath','入浴')}</div>
+    <div class="sec">アクト</div>
+    <div class="k">1–7</div><div class="v">${ACT.map(i=>chk('act.'+i,String(i))).join('')}</div>
+    <div class="sec">請求関係</div>
+    <div class="k">請求</div><div class="v">${BILL.map(k=>chk('bill.'+k,k)).join('')} ${txt('wash','洗濯','s')}</div>
+  </div>`;
+  document.querySelectorAll('#formcard [data-f]').forEach(el=>{
+    const save=async v=>{ const r=await api('save',{person:CUR,field:el.dataset.f,value:v});
+      if(r.j.ok){ ENT[el.dataset.f]={value:v,set_by:ME.id,set_at:Math.floor(Date.now()/1000)}; drawForm(); }
+      else { alert({locked:'Исправлять можно только 5 минут после записи. Обратитесь к модератору.',not_yours:'Это не ваш работник.',not_today:'Этого человека нет в списке сегодня.'}[r.j.error]||'Не сохранено'); } };
+    if(el.type==='checkbox') el.onchange=()=>save(el.checked?'1':'');
+    else el.onchange=()=>save(el.value);
+  });
+}
+document.getElementById('prt').onclick=()=>printSheet();
+// prints today's sheet: meibo's own sheet code (sheet-bundle.js) + meibo's styles (sheet.css) + the day's data;
+// worker entries are applied only to this printout (meds, 注意点, 臨薬). Nothing is written to meibo.
+async function printSheet(){
+  const r=await api('sheet');
+  if(r.status!==200||!r.j.ok){ alert('Лист недоступен: '+(r.j.error||'нет связи с meibo')); return; }
+  const snap=JSON.parse(JSON.stringify(r.j.snapshot)), day=r.j.day, ents=r.j.entries||{};
+  const MAP={'朝':'morning','昼':'noon','夕':'evening','翌朝':'nextMorning','貼り薬':'patch','寝る前':'bedtime'};
+  snap.people.forEach(p=>{
+    let name=''; (p.v||[]).forEach(v=>{ if(v.s&&v.s.name) name=v.s.name; });
+    const e=ents[name]; if(!e) return;
+    let base=null; (p.v||[]).forEach((v,i)=>{ if(i===0) base=v.s; if(v.from<=day) base=v.s; });
+    if(!base) return;
+    base=JSON.parse(JSON.stringify(base)); base.meds=base.meds||{};
+    Object.keys(MAP).forEach(k=>{ if(e['med.'+k]!==undefined) base.meds[MAP[k]]=(e['med.'+k]==='1'); });
+    if(e['rinyaku']) base.meds.abx=true;
+    if(e['note']) base.note=e['note'];
+    p.v=(p.v||[]).filter(v=>v.from!==day).concat([{from:day,s:base}]).sort((x,y)=>x.from<y.from?-1:x.from>y.from?1:0);
+  });
+  const sheetSrc=await fetch('sheet-bundle.js').then(x=>x.text());
+  const css=await fetch('sheet.css').then(x=>x.text());
+  const data=JSON.stringify(snap).replace(/</g,'\\u003c');
+  const html='<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><title>'+day+'_利用者名簿</title><style>'+css+'</style></head><body><div id="sheet"></div><script>'+sheetSrc+'\n;DB='+data+';date='+JSON.stringify(day)+';(function(){var el=document.getElementById("sheet");var o=sheetInner();el.style.setProperty("--r",o.r+"mm");el.innerHTML=o.html;place(el,o);setTimeout(function(){window.print();},300);})();<\/script></body></html>';
+  const w=window.open('','_blank'); if(!w){ alert('Разрешите всплывающие окна для печати'); return; }
+  w.document.open(); w.document.write(html); w.document.close();
+}
+boot();
+</script>
+</body>
+</html>

@@ -17,6 +17,7 @@ services:
       DB_NAME: meibo
       DB_USER: meibo
       DB_PASS: ${APP_SEED}
+      READ_TOKEN: CHANGE-ME-READ-TOKEN
       MEIBO_SEED: ${APP_SEED}
 
   db:
