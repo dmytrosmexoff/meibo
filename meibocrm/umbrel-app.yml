@@ -1,0 +1,22 @@
+manifestVersion: 1
+id: meibocrm
+category: productivity
+name: MeiboCrm
+version: "0.3.0"
+tagline: Работники заполняют записи дня
+description: >-
+  Вход работников, их записи за сегодняшний день. Отдельная база данных.
+  Этап 1: каркас (вход, роли, форма, правило 5 минут). Печать и связь с meibo — следующие этапы.
+developer: Local
+website: ""
+dependencies: []
+repo: ""
+support: ""
+port: 1476
+gallery: []
+path: ""
+defaultUsername: ""
+defaultPassword: ""
+releaseNotes: ""
+submitter: Local
+submission: ""
