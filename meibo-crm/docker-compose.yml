@@ -11,10 +11,10 @@ services:
       - db
     environment:
       DB_HOST: meibocrm_db_1
-      DB_NAME: meibocrm
-      DB_USER: meibocrm
+      DB_NAME: meibo-crm
+      DB_USER: meibo-crm
       DB_PASS: ${APP_SEED}
-      MEIBO_URL: http://UMBREL-IP:1475
+      MEIBO_URL: http://UMBREL-IP:1476
       MEIBO_TOKEN: CHANGE-ME-READ-TOKEN
   db:
     image: mysql:8.4
